@@ -1,0 +1,12 @@
+/home/ikenna/SOC_IT/espressoTester/build/CMakeFiles/edit_cache.dir
+/home/ikenna/SOC_IT/espressoTester/build/CMakeFiles/rebuild_cache.dir
+/home/ikenna/SOC_IT/espressoTester/build/CMakeFiles/espressoTester.dir
+/home/ikenna/SOC_IT/fixedPoint/build/CMakeFiles/edit_cache.dir
+/home/ikenna/SOC_IT/fixedPoint/build/CMakeFiles/rebuild_cache.dir
+/home/ikenna/SOC_IT/fixedPoint/build/CMakeFiles/fixedPoint.dir
+/home/ikenna/SOC_IT/espresso/build/CMakeFiles/rebuild_cache.dir
+/home/ikenna/SOC_IT/espresso/build/CMakeFiles/edit_cache.dir
+/home/ikenna/SOC_IT/espresso/build/CMakeFiles/espresso.dir
+/home/ikenna/SOC_IT/caffeDataParser/build/CMakeFiles/rebuild_cache.dir
+/home/ikenna/SOC_IT/caffeDataParser/build/CMakeFiles/edit_cache.dir
+/home/ikenna/SOC_IT/caffeDataParser/build/CMakeFiles/caffeDataParser.dir
