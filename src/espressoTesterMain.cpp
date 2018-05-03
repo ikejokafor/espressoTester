@@ -215,12 +215,12 @@ void dataTransform(vector<espresso::layerInfo_t> &networkLayerInfo, vector<caffe
             networkLayerInfo[i].group                   = caffeDataParserLayerInfo[i].group;   
             networkLayerInfo[i].globalPooling           = caffeDataParserLayerInfo[i].globalPooling;         
             if(caffeDataParserLayerInfo[i].layerType == "Convolution" || caffeDataParserLayerInfo[i].layerType == "InnerProduct") {
-                networkLayerInfo[i].fxFilterData = (FixedPoint_t*)malloc(sizeof(FixedPoint) * caffeDataParserLayerInfo[i].numFilterValues); 
+                networkLayerInfo[i].fxFilterData = (FixedPoint_t*)malloc(sizeof(FixedPoint_t) * caffeDataParserLayerInfo[i].numFilterValues); 
                 for(int j = 0; j < caffeDataParserLayerInfo[i].numFilterValues; j++) {
 	                networkLayerInfo[i].fxFilterData[j] = FixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, caffeDataParserLayerInfo[i].filterData[j]);
                 }        
                 
-                networkLayerInfo[i].fxBiasData = (FixedPoint_t*)malloc(sizeof(FixedPoint) *caffeDataParserLayerInfo[i].numBiasValues);
+                networkLayerInfo[i].fxBiasData = (FixedPoint_t*)malloc(sizeof(FixedPoint_t) * caffeDataParserLayerInfo[i].numBiasValues);
                 for(int j = 0; j < caffeDataParserLayerInfo[i].numBiasValues; j++) {
 	                networkLayerInfo[i].fxBiasData[j] = FixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, caffeDataParserLayerInfo[i].biasData[j]);
                 } 
@@ -242,23 +242,14 @@ int main(int argc, char **argv) {
     // exit(0);
 
     
-    if(argc < 7) {
-        cout << "Need more args" << endl;
-        exit(0);
-    }
+	// VGG
+    string protoTxt = "../../../caffe-master/models/vgg16/vgg16_deploy.prototxt";
+	string model = "../../../caffe-master/models/vgg16/VGG_ILSVRC_16_layers.caffemodel"; 
+    string beginLayer = "data"; 
+    string endLayer = "fc6";
+    string fixed_float = "fixed";    
+	Mat img = imread("../scripts/image.png", IMREAD_COLOR);
 
-    
-    string protoTxt = argv[1];
-    string model = argv[2];
-    Mat img = imread(argv[3], IMREAD_COLOR);
-    
-    string beginLayer = " "; 
-    string endLayer = " ";
-    string fixed_float = " ";
-    
-    beginLayer = argv[4];
-    endLayer = argv[5];
-    fixed_float = argv[6];
    
     // Read in model
 	vector<caffeDataParser::layerInfo_t> caffeDataParserLayerInfo = parseCaffeData(protoTxt, model);

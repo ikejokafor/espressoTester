@@ -69,9 +69,7 @@ PROJECT(${TARGET_NAME})
 
 # BEGIN External CMake files ------------------------------------------------------------------------------------------------------------------------
 # Make sure include and lib directories are relative to home dir of this cmake file
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../fixedPoint ${PROJECT_SOURCE_DIR}/../fixedPoint/build/)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../espresso/ ${PROJECT_SOURCE_DIR}/../espresso/build/)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/../caffeDataParser/ ${PROJECT_SOURCE_DIR}/../caffeDataParser/build/)
+#ADD_SUBDIRECTORY()
 # END External CMake files --------------------------------------------------------------------------------------------------------------------------
 
 
@@ -154,19 +152,17 @@ else()
     TARGET_LINK_LIBRARIES(${TARGET_NAME} PUBLIC
         -L/usr/local/lib
         -L/usr/lib/
-        -L${PROJECT_SOURCE_DIR}/../espresso/build/
-        -L${PROJECT_SOURCE_DIR}/../caffeDataParser/build/
-        -L${PROJECT_SOURCE_DIR}/../fixedPoint/build/
-		-lcaffeDataParser
-        -lespresso          #this must go before fixedPoint, bc espresso depends on fixedpoint
-        -lfixedPoint
         -lprotobuf
         -lopencv_core
         -lopencv_highgui
         -lopencv_imgproc
+        caffeDataParser
+        espresso
+        fixedPoint
 )
 endif()
 # END Library Settings ------------------------------------------------------------------------------------------------------------------------------
+
 
 
 
