@@ -40,7 +40,7 @@
 //  SqueezeNet
 // ----------------------------------------------
 //  Convolutions:
-//  Pool:
+//  Pool: 3x3
 //  Max Pooling:
 //  Global Pooling: Yes
 //  Average Pooling:
@@ -48,7 +48,7 @@
 //  Padding:
 //  Norm: No
 //  Fully Connected + Softmax:
-//      ./espressoTester ../../../caffe-master/models/squeezenet/deploy.prototxt ../../../caffe-master/models/squeezenet/squeezenet_v1.1.caffemodel ../scripts/image.png data prob
+//      ./espressoTester ../../../caffe/models/squeezenet/deploy.prototxt ../../../caffe/models/squeezenet/squeezenet_v1.1.caffemodel ../scripts/image.png data prob
 // 
 //
 //  VGG16
@@ -62,7 +62,7 @@
 //  Padding: 0, 1
 //  Norm: No
 //  Fully Connected + Softmax: Yes
-//      ./espressoTester ../../../caffe-master/models/vgg16/vgg16_deploy.prototxt ../../../caffe-master/models/vgg16/VGG_ILSVRC_16_layers.caffemodel ../scripts/image.png data prob 
+//      ./espressoTester ../../../caffe/models/vgg16/vgg16_deploy.prototxt ../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel ../scripts/image.png data prob 
 // 
 //
 //  VGG19
@@ -76,21 +76,22 @@
 //  Padding: 0, 1
 //  Norm: No
 //  Fully Connected + Softmax: Yes
-//      ./espressoTester ../../../caffe-master/models/vgg19/vgg19_deploy.prototxt ../../../caffe-master/models/vgg19/VGG_ILSVRC_19_layers.caffemodel ../scripts/image.png data prob 
+//      ./espressoTester ../../../caffe/models/vgg19/vgg19_deploy.prototxt ../../../caffe/models/vgg19/VGG_ILSVRC_19_layers.caffemodel ../scripts/image.png data prob 
 // 
 //
 //  GoogleNet
 // ----------------------------------------------
 //  Convolutions: 1x1. 3x3, 5x5, 7x7
-//  Pool: 2, 7
+//  Max Pool: 2x2, 3x3, 
+//  Ave Pool: 7x7
 //  Max Pooling: Yes
 //  Global Pooling: No
 //  Average Pooling: Yes
 //  Strides: 1, 2
 //  Padding: 0, 1, 2, 3
-//  Norm: Yes
+//  Norm: LRN
 //  Fully Connected + Softmax: Yes
-//      ./espressoTester ../../../caffe-master/models/bvlc_googlenet/deploy.prototxt ../../../caffe-master/models/bvlc_googlenet/bvlc_googlenet.caffemodel ../scripts/image.png data prob 
+//      ./espressoTester ../../../caffe/models/bvlc_googlenet/deploy.prototxt ../../../caffe/models/bvlc_googlenet/bvlc_googlenet.caffemodel ../scripts/image.png data prob 
 // 
 //
 //  AlexNet
@@ -104,13 +105,13 @@
 //  Padding: 0, 1, 2
 //  Norm: LRN
 //  Fully Connected + Softmax: Yes
-//      ./espressoTester ../../../caffe-master/models/bvlc_alexnet/deploy.prototxt ../../../caffe-master/models/bvlc_alexnet/bvlc_alexnet.caffemodel ../scripts/image.png data prob 
+//      ./espressoTester ../../../caffe/models/bvlc_alexnet/deploy.prototxt ../../../caffe/models/bvlc_alexnet/bvlc_alexnet.caffemodel ../scripts/image.png data prob 
 //   
 //
 //  DcNet
 // ----------------------------------------------
 //  Convolutions:
-//  Pool:
+//  Pool: 2x2
 //  Max Pooling:
 //  Global Pooling:
 //  Average Pooling:
@@ -118,7 +119,7 @@
 //  Padding:
 //  Norm:
 //  Fully Connected + Softmax:
-//      ./espressoTester ../../../caffe-master/models/dcNet/deploy_sqz_2.prototxt ../../../caffe-master/models/dcNet/sqz_rework_iter_100000.caffemodel ../../../../../detector_test_kitti/temp.png data objectness0_soft
+//      ./espressoTester ../../../caffe/models/dcNet/deploy_sqz_2.prototxt ../../../caffe/models/dcNet/sqz_rework_iter_100000.caffemodel ../../../../../detector_test_kitti/temp.png data objectness0_soft
 //
 //
 #include "Network.hpp"
@@ -186,7 +187,7 @@ void dataTransform(vector<espresso::layerInfo_t> &networkLayerInfo, vector<caffe
         // Begin Code -------------------------------------------------------------------------------------------------------------------------------
 
         for(uint32_t i = 0; i < caffeDataParserLayerInfo.size(); i++) {
-            if(caffeDataParserLayerInfo[i].layerType == "LRN" || caffeDataParserLayerInfo[i].layerType == "SoftMax") {
+            if(caffeDataParserLayerInfo[i].layerType == "LRN" || caffeDataParserLayerInfo[i].layerType == "Softmax") {
                 networkLayerInfo[i].precision = FLOAT; 
             } else {
                 networkLayerInfo[i].precision = FIXED; 
@@ -243,11 +244,28 @@ int main(int argc, char **argv) {
 
     
 	// VGG
-    string protoTxt = "../../../caffe-master/models/vgg16/vgg16_deploy.prototxt";
-	string model = "../../../caffe-master/models/vgg16/VGG_ILSVRC_16_layers.caffemodel"; 
-    string beginLayer = "data"; 
-    string endLayer = "fc6";
-    string fixed_float = "fixed";    
+    // string protoTxt = "../../../caffe/models/vgg16/vgg16_deploy.prototxt";
+	// string model = "../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel"; 
+    // string beginLayer = "data"; 
+    // string endLayer = "prob";
+	
+	
+	// AlexNet
+	string protoTxt = "../../../caffe/models/bvlc_alexnet/deploy.prototxt";
+	string model = "../../../caffe/models/bvlc_alexnet/bvlc_alexnet.caffemodel"; 
+	string beginLayer = "data"; 
+	string endLayer = "fc6";
+	
+	
+	// Goolge Net
+	// string protoTxt = "../../../caffe/models/bvlc_googlenet/deploy.prototxt";
+	// string model = "../../../caffe/models/bvlc_googlenet/bvlc_googlenet.caffemodel"; 
+	// string beginLayer = "data"; 
+	// string endLayer = "prob";
+	
+	
+	
+    string fixed_float = "float";    
 	Mat img = imread("../scripts/image.png", IMREAD_COLOR);
 
    
@@ -346,7 +364,7 @@ int main(int argc, char **argv) {
                 for(int i = 0; i < network_fxPt->m_cnn[endLayerIdx]->m_blob.depth; i++) {
                     for(int j = 0; j < network_fxPt->m_cnn[endLayerIdx]->m_blob.numRows; j++) {
                         for(int k = 0; k < network_fxPt->m_cnn[endLayerIdx]->m_blob.numCols; k++) {
-                            fd << FixedPoint::toFloat(16, index3D(  
+                            fd << FixedPoint::toFloat(ESPRO_DEF_NUM_FRAC_BITS, index3D(  
                                                             network_fxPt->m_cnn[endLayerIdx]->m_blob.depth, 
                                                             network_fxPt->m_cnn[endLayerIdx]->m_blob.numRows, 
                                                             network_fxPt->m_cnn[endLayerIdx]->m_blob.numCols, 
@@ -359,7 +377,12 @@ int main(int argc, char **argv) {
                 }
             } else {
                 for(int i = 0; i < network_fxPt->m_cnn[endLayerIdx]->m_blob.depth; i++) {
-                    fd << FixedPoint::toFloat(16, network_fxPt->m_cnn[endLayerIdx]->m_blob.fxData[i]) << endl;
+	                if (network_fxPt->m_cnn[endLayerIdx]->m_precision == FIXED) {
+		                fd << FixedPoint::toFloat(ESPRO_DEF_NUM_FRAC_BITS, network_fxPt->m_cnn[endLayerIdx]->m_blob.fxData[i]) << endl;
+	                } else {
+		                fd << network_fxPt->m_cnn[endLayerIdx]->m_blob.flData[i] << endl;
+	                }
+
                 }
             }
             fd.close();

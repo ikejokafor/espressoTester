@@ -108,6 +108,7 @@ ADD_EXECUTABLE(${TARGET_NAME} ${TARGET_SRCS} ${TARGET_HEADERS})
 add_dependencies(${TARGET_NAME} espresso)
 add_dependencies(${TARGET_NAME} caffeDataParser)
 add_dependencies(${TARGET_NAME} fixedPoint)
+#add_dependencies(${TARGET_NAME} RL)
 # END Build dependencies ----------------------------------------------------------------------------------------------------------------------------
 
 
@@ -159,6 +160,7 @@ else()
         caffeDataParser
         espresso
         fixedPoint
+        #RL
 )
 endif()
 # END Library Settings ------------------------------------------------------------------------------------------------------------------------------
