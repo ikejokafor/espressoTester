@@ -128,6 +128,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iomanip>
 #include <fstream>
+#include "util.hpp"
 using namespace std;
 using namespace cv;
 
@@ -244,17 +245,17 @@ int main(int argc, char **argv) {
 
     
 	// VGG
-    // string protoTxt = "../../../caffe/models/vgg16/vgg16_deploy.prototxt";
-	// string model = "../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel"; 
-    // string beginLayer = "data"; 
-    // string endLayer = "prob";
+    string protoTxt = "../../../caffe/models/vgg16/vgg16_deploy.prototxt";
+	string model = "../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel"; 
+    string beginLayer = "data"; 
+    string endLayer = "prob";
 	
 	
 	// AlexNet
-	string protoTxt = "../../../caffe/models/bvlc_alexnet/deploy.prototxt";
-	string model = "../../../caffe/models/bvlc_alexnet/bvlc_alexnet.caffemodel"; 
-	string beginLayer = "data"; 
-	string endLayer = "fc6";
+	// string protoTxt = "../../../caffe/models/bvlc_alexnet/deploy.prototxt";
+	// string model = "../../../caffe/models/bvlc_alexnet/bvlc_alexnet.caffemodel"; 
+	// string beginLayer = "data"; 
+	// string endLayer = "fc6";
 	
 	
 	// Goolge Net
@@ -300,8 +301,16 @@ int main(int argc, char **argv) {
             network->m_cnn[0]->m_numInputRows   = inputBlob.numRows;
             network->m_cnn[0]->m_numInputCols   = inputBlob.numCols;
             network->m_cnn[0]->m_blob.flData    = inputBlob.flData;
+	        
+	        struct timespec finish;
+	        struct timespec start;
+	        float elapsedTime;			
+	        clock_gettime(CLOCK_MONOTONIC, &start);	
             network->Forward(beginLayer, endLayer);
-        
+	        clock_gettime(CLOCK_MONOTONIC, &finish);
+	        elapsedTime = diff(start, finish);   // units in seconds
+	        cout << elapsedTime << endl;
+	        exit(0);           
         
             fd.open("output_espresso.txt");
             if(network->m_cnn[endLayerIdx]->m_blob.depth > 1 && network->m_cnn[endLayerIdx]->m_blob.numRows > 1 && network->m_cnn[endLayerIdx]->m_blob.numCols > 1) {

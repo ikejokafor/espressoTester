@@ -7,6 +7,7 @@ import caffe
 import cv2
 import math
 import argparse
+import time
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -68,27 +69,29 @@ if __name__ == "__main__":
     net.blobs['data'].reshape(1,3,frame.shape[0],frame.shape[1])
     net.blobs['data'].data[...] = frame.transpose(2,0,1).astype(float)
 
-    if(beginLayer == "start" or endLayer == "end"):
-	quit()
-    else:
-    	net_output = net.forward(start=beginLayer, end=endLayer)
-        print net_output[endLayer].shape 
-        print net_output[endLayer].ndim
-        fh = open('output_golden.txt', 'w')
-        if(net_output[endLayer].ndim == 4):
-            for i in range(0, net_output[endLayer].shape[1]):
-                for j in range(0, net_output[endLayer].shape[2]):
-                    for k in range(0, net_output[endLayer].shape[3]):
-                        fh.write(str(net_output[endLayer].item(0, i, j, k)) + ' ')
-                    fh.write('\n')
-                if(net_output[endLayer].shape[3] != 1 and net_output[endLayer].shape[2] != 1):
-                    fh.write('\n')
-                    fh.write('\n')
-                    fh.write('\n')
-        elif (net_output[endLayer].ndim == 2) :
-            for i in range(0, net_output[endLayer].shape[1]):
-                fh.write(str(net_output[endLayer].item(0, i)) + '\n')
+    start = time.time()
+    net_output = net.forward(start=beginLayer, end=endLayer)
+    end = time.time()
+    print(end - start)  
+    quit()
+    
+    print net_output[endLayer].shape 
+    print net_output[endLayer].ndim
+    fh = open('../build/output_golden.txt', 'w')
+    if(net_output[endLayer].ndim == 4):
+        for i in range(0, net_output[endLayer].shape[1]):
+            for j in range(0, net_output[endLayer].shape[2]):
+                for k in range(0, net_output[endLayer].shape[3]):
+                    fh.write(str(net_output[endLayer].item(0, i, j, k)) + ' ')
+                fh.write('\n')
+            if(net_output[endLayer].shape[3] != 1 and net_output[endLayer].shape[2] != 1):
+                fh.write('\n')
+                fh.write('\n')
+                fh.write('\n')
+    elif (net_output[endLayer].ndim == 2) :
+        for i in range(0, net_output[endLayer].shape[1]):
+            fh.write(str(net_output[endLayer].item(0, i)) + '\n')
 
-        fh.close()      
-        quit()
+    fh.close()      
+    quit()
 
