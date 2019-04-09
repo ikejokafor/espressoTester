@@ -46,21 +46,6 @@ PROJECT(${TARGET_NAME})
 # END Set VS startup Project ------------------------------------------------------------------------------------------------------------------------
 
 
-# BEGIN Set Output Path for libs or bins ------------------------------------------------------------------------------------------------------------
-# Option 1) Executable
-#    SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
-#                            RUNTIME_OUTPUT_DIRECTORY 
-#                            ${PROJECT_SOURCE_DIR}/<path>)
-# Option 2) Static lib                           
-#    SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
-#                            LIBRARY_OUTPUT_DIRECTORY 
-#                            ${PROJECT_SOURCE_DIR}/<path>)
-# Option 3) Shared lib                           
-#    SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
-#                            ARCHIVE_OUTPUT_DIRECTORY 
-#                            ${PROJECT_SOURCE_DIR}/<path>)                        
-# END Set Output Path for libs or bins --------------------------------------------------------------------------------------------------------------
-
 
 # BEGIN Compiler Definitions ------------------------------------------------------------------------------------------------------------------------
 #add_definitions(-DLINUX)
@@ -104,10 +89,19 @@ ADD_EXECUTABLE(${TARGET_NAME} ${TARGET_SRCS} ${TARGET_HEADERS})
 # END Target Settings -------------------------------------------------------------------------------------------------------------------------------
 
 
+# BEGIN Set Output Path for libs or bins ------------------------------------------------------------------------------------------------------------
+SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+                        RUNTIME_OUTPUT_DIRECTORY 
+                        ${PROJECT_SOURCE_DIR}/build/)
+# END Set Output Path for libs or bins --------------------------------------------------------------------------------------------------------------
+
+
 # BEGIN Build dependencies --------------------------------------------------------------------------------------------------------------------------
-add_dependencies(${TARGET_NAME} espresso)
-add_dependencies(${TARGET_NAME} caffeDataParser)
-add_dependencies(${TARGET_NAME} fixedPoint)
+ADD_DEPENDENCIES(${TARGET_NAME} espresso)
+#ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
+ADD_DEPENDENCIES(${TARGET_NAME} fixedPoint)
+ADD_DEPENDENCIES(${TARGET_NAME} darknet_arcv)
+#ADD_DEPENDENCIES(${TARGET_NAME} caffeClassifier)
 #add_dependencies(${TARGET_NAME} RL)
 # END Build dependencies ----------------------------------------------------------------------------------------------------------------------------
 
@@ -136,6 +130,9 @@ TARGET_INCLUDE_DIRECTORIES(${TARGET_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/../caffeDataParser/inc/
     ${PROJECT_SOURCE_DIR}/../espresso/inc/
     ${PROJECT_SOURCE_DIR}/../fixedPoint/inc/
+    ${PROJECT_SOURCE_DIR}/../caffeClassifier/inc/
+	${PROJECT_SOURCE_DIR}/../darknet/include/
+	${PROJECT_SOURCE_DIR}/../darknet/src/
 )
 # END Include directories ---------------------------------------------------------------------------------------------------------------------------
 
@@ -153,13 +150,19 @@ else()
     TARGET_LINK_LIBRARIES(${TARGET_NAME} PUBLIC
         -L/usr/local/lib
         -L/usr/lib/
-        -lprotobuf
+		-L/home/ikenna/IkennaWorkSpace/darknet/build
+		#-lcaffe
+        #-lprotobuf
         -lopencv_core
         -lopencv_highgui
         -lopencv_imgproc
-        caffeDataParser
+		-ldarknet_arcv
+		-lpthread
+		#caffeClassifier
+        #caffeDataParser
         espresso
         fixedPoint
+		util
         #RL
 )
 endif()

@@ -1,7 +1,7 @@
 import sys
 #sys.path.append('/home/ikenna/caffe/python/')
 #sys.path.append('/home/ikenna/ssd/python/')
-sys.path.append('/home/ikenna/ristretto/python/')
+#sys.path.append('/home/ikenna/ristretto/python/')
 import numpy as np
 import caffe
 import cv2
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     # python caffePython.py ../../../ristretto/models/SqueezeNet/quantized.prototxt ../../../ristretto/models/SqueezeNet/squeezenet_finetuned.caffemodel data prob
     #
     # VGG16
-    # python caffePython.py ../../../caffe/models/vgg16/vgg16_deploy.prototxt ../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel data prob 
+    # python caffePython.py ../../../caffe/models/vgg16/vgg16_deploy.prototxt ../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel conv1_1 prob 
     #
     # VGG19
     # python caffePython.py ../../../caffe/models/vgg19/vgg16_deploy.prototxt ../../../caffe/models/vgg19/VGG_ILSVRC_16_layers.caffemodel data prob 
@@ -54,13 +54,13 @@ if __name__ == "__main__":
     # SSD
     # python caffePython.py ../../../ssd/models/SSD/deploy.prototxt ../../../ssd/models/SSD/VGG_VOC0712Plus_SSD_512x512_ft_iter_160000.caffemodel start end
  
-
+    
     args = parse_args()
     path2deploy = args.path2deploy
     path2modelfile = args.path2modelfile
     beginLayer = args.beginLayer
     endLayer = args.endLayer
- 
+
     
     net = caffe.Net(path2deploy, path2modelfile, caffe.TEST)
     frame = cv2.imread('/home/ikenna/detector_test_kitti/KITTI/000000.png')
@@ -73,11 +73,12 @@ if __name__ == "__main__":
     net_output = net.forward(start=beginLayer, end=endLayer)
     end = time.time()
     print(end - start)  
-    quit()
+    #quit()
     
     print net_output[endLayer].shape 
     print net_output[endLayer].ndim
-    fh = open('../build/output_golden.txt', 'w')
+    #fh = open('../build/output_golden.txt', 'w')
+    fh = open('output_golden.txt', 'w')
     if(net_output[endLayer].ndim == 4):
         for i in range(0, net_output[endLayer].shape[1]):
             for j in range(0, net_output[endLayer].shape[2]):

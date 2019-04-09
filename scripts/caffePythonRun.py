@@ -63,6 +63,29 @@ def maxIndex(list):
             idx = i
         i = i + 1
     return idx
+    
+def max5Index(list):
+    i = 0
+    idx0 = 0
+    idx1 = 0
+    idx2 = 0
+    idx3 = 0
+    idx4 = 0
+    max0 = float('-inf')
+    max1 = float('-inf')
+    max2 = float('-inf')
+    max3 = float('-inf')
+    max4 = float('-inf')
+    while i < list.shape[1]:
+        if list.item(0, i) > max0:
+            max = list.item(0, i)
+            idx0 = i
+        elif list.item(0, i) > max1:
+            max = list.item(0, i)
+            idx = i
+        
+        i = i + 1
+    return [idx0, idx1, idx2, idx3, idx4]
 
 if __name__ == "__main__":
 
@@ -116,10 +139,13 @@ if __name__ == "__main__":
         
         # Begin Code ------------------------------------------------------------------------------------------------------------------------------------  
         net.blobs['data'].reshape(1,3,img.shape[0],img.shape[1])
-        net.blobs['data'].data[...] = img.transpose(2,0,1).astype(float)
+        net.blobs['data'].data[...] = img.transpose(2,0,1).astype(float) - 128.0
         net_output = net.forward()
         # End Code --------------------------------------------------------------------------------------------------------------------------------------
 
+        print type(net_output['prob'])
+        quit()
+        
         queryClass = maxIndex(net_output['prob'])
         print(queryClass)
         

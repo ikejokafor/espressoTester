@@ -1,449 +1,337 @@
-//  OverFeat
-// ----------------------------------------------
-//  Convolutions:
-//  Pool:
-//  Max Pooling:
-//  Global Pooling:
-//  Average Pooling:
-//  Strides:
-//  Padding:
-//  Norm:
-//  Fully Connected + Softmax:
-//
-//
-// SSD
-// ----------------------------------------------
-//  Convolutions:
-//  Pool:
-//  Max Pooling:
-//  Global Pooling:
-//  Average Pooling:
-//  Strides:
-//  Padding:
-//  Norm:
-//  Fully Connected + Softmax:
-// 
-//
-//  YOLO
-// ----------------------------------------------
-//  Convolutions:
-//  Pool:
-//  Max Pooling:
-//  Global Pooling:
-//  Average Pooling:
-//  Strides:
-//  Padding:
-//  Norm:
-//  Fully Connected + Softmax:
-//
-//
-//  SqueezeNet
-// ----------------------------------------------
-//  Convolutions:
-//  Pool: 3x3
-//  Max Pooling:
-//  Global Pooling: Yes
-//  Average Pooling:
-//  Strides:
-//  Padding:
-//  Norm: No
-//  Fully Connected + Softmax:
-//      ./espressoTester ../../../caffe/models/squeezenet/deploy.prototxt ../../../caffe/models/squeezenet/squeezenet_v1.1.caffemodel ../scripts/image.png data prob
-// 
-//
-//  VGG16
-// ----------------------------------------------
-//  Convolutions: 3x3
-//  Pool: 2x2
-//  Max Pooling: Yes
-//  Global Pooling: No
-//  Average Pooling: No
-//  Strides: 1, 2
-//  Padding: 0, 1
-//  Norm: No
-//  Fully Connected + Softmax: Yes
-//      ./espressoTester ../../../caffe/models/vgg16/vgg16_deploy.prototxt ../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel ../scripts/image.png data prob 
-// 
-//
-//  VGG19
-// ----------------------------------------------
-//  Convolutions: 3x3
-//  Pool: 2x2
-//  Max Pooling: Yes
-//  Global Pooling: No
-//  Average Pooling: No
-//  Strides: 1, 2
-//  Padding: 0, 1
-//  Norm: No
-//  Fully Connected + Softmax: Yes
-//      ./espressoTester ../../../caffe/models/vgg19/vgg19_deploy.prototxt ../../../caffe/models/vgg19/VGG_ILSVRC_19_layers.caffemodel ../scripts/image.png data prob 
-// 
-//
-//  GoogleNet
-// ----------------------------------------------
-//  Convolutions: 1x1. 3x3, 5x5, 7x7
-//  Max Pool: 2x2, 3x3, 
-//  Ave Pool: 7x7
-//  Max Pooling: Yes
-//  Global Pooling: No
-//  Average Pooling: Yes
-//  Strides: 1, 2
-//  Padding: 0, 1, 2, 3
-//  Norm: LRN
-//  Fully Connected + Softmax: Yes
-//      ./espressoTester ../../../caffe/models/bvlc_googlenet/deploy.prototxt ../../../caffe/models/bvlc_googlenet/bvlc_googlenet.caffemodel ../scripts/image.png data prob 
-// 
-//
-//  AlexNet
-// ----------------------------------------------
-//  Convolutions: 3x3, 5x5, 11x11
-//  Pool: 3x3
-//  Max Pooling: Yes
-//  Global Pooling: No
-//  Average Pooling: No
-//  Strides: 1, 2, 4
-//  Padding: 0, 1, 2
-//  Norm: LRN
-//  Fully Connected + Softmax: Yes
-//      ./espressoTester ../../../caffe/models/bvlc_alexnet/deploy.prototxt ../../../caffe/models/bvlc_alexnet/bvlc_alexnet.caffemodel ../scripts/image.png data prob 
-//   
-//
-//  DcNet
-// ----------------------------------------------
-//  Convolutions:
-//  Pool: 2x2
-//  Max Pooling:
-//  Global Pooling:
-//  Average Pooling:
-//  Strides:
-//  Padding:
-//  Norm:
-//  Fully Connected + Softmax:
-//      ./espressoTester ../../../caffe/models/dcNet/deploy_sqz_2.prototxt ../../../caffe/models/dcNet/sqz_rework_iter_100000.caffemodel ../../../../../detector_test_kitti/temp.png data objectness0_soft
-//
-//
-#include "Network.hpp"
-#include "caffeDataParser.hpp"
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+// Definitions
+#define THRESH			0.5f
+#define HIER_THRESH		0.5f
+#define NMS				0.45f
+
+
+// System includes
 #include <iomanip>
 #include <fstream>
 #include "util.hpp"
 using namespace std;
-using namespace cv;
+
+// opencv includes
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 
-void dataTransform(vector<espresso::layerInfo_t> &networkLayerInfo, vector<caffeDataParser::layerInfo_t> caffeDataParserLayerInfo, precision_t precision) {
-    
-    if(precision == FLOAT) {
-        
-        // Begin Code -------------------------------------------------------------------------------------------------------------------------------
-        for(uint32_t i = 0; i < caffeDataParserLayerInfo.size(); i++) {
-            networkLayerInfo[i].precision               = FLOAT; 
-            networkLayerInfo[i].layerName               = caffeDataParserLayerInfo[i].layerName;     
-            networkLayerInfo[i].topLayerNames           = caffeDataParserLayerInfo[i].topLayerNames;    
-            networkLayerInfo[i].bottomLayerNames        = caffeDataParserLayerInfo[i].bottomLayerNames; 
-            networkLayerInfo[i].layerType               = caffeDataParserLayerInfo[i].layerType;       
-            networkLayerInfo[i].numInputRows            = caffeDataParserLayerInfo[i].numInputRows;     
-            networkLayerInfo[i].numInputCols            = caffeDataParserLayerInfo[i].numInputCols;     
-            networkLayerInfo[i].inputDepth              = caffeDataParserLayerInfo[i].inputDepth;       
-            networkLayerInfo[i].outputDepth             = caffeDataParserLayerInfo[i].outputDepth;      
-            networkLayerInfo[i].numKernelRows           = caffeDataParserLayerInfo[i].numKernelRows;    
-            networkLayerInfo[i].numKernelCols           = caffeDataParserLayerInfo[i].numKernelCols;    
-            networkLayerInfo[i].stride                  = caffeDataParserLayerInfo[i].stride;          
-            networkLayerInfo[i].padding                 = caffeDataParserLayerInfo[i].padding;
-            networkLayerInfo[i].globalPooling           = caffeDataParserLayerInfo[i].globalPooling;
-            networkLayerInfo[i].group                   = caffeDataParserLayerInfo[i].group;
-            networkLayerInfo[i].localSize               = caffeDataParserLayerInfo[i].localSize;
-            networkLayerInfo[i].alpha                   = caffeDataParserLayerInfo[i].alpha;
-            networkLayerInfo[i].beta                    = caffeDataParserLayerInfo[i].beta;
-            
-            if(caffeDataParserLayerInfo[i].layerType == "Convolution" || caffeDataParserLayerInfo[i].layerType == "InnerProduct") {
-                networkLayerInfo[i].flFilterData = (float*)malloc(    caffeDataParserLayerInfo[i].numFilterValues
-                                                                    * sizeof(float)
-                                                               );
-                memcpy  (   networkLayerInfo[i].flFilterData, 
-                            caffeDataParserLayerInfo[i].filterData,
-                            caffeDataParserLayerInfo[i].numFilterValues                                 
-                            * sizeof(float)                    
-                        );
+// darknet includes
+#include "activation_layer.h"
+#include "logistic_layer.h"
+#include "l2norm_layer.h"
+#include "activations.h"
+#include "avgpool_layer.h"
+#include "batchnorm_layer.h"
+#include "blas.h"
+#include "connected_layer.h"
+#include "deconvolutional_layer.h"
+#include "convolutional_layer.h"
+#include "cost_layer.h"
+#include "crnn_layer.h"
+#include "crop_layer.h"
+#include "detection_layer.h"
+#include "dropout_layer.h"
+#include "gru_layer.h"
+#include "list.h"
+#include "local_layer.h"
+#include "maxpool_layer.h"
+#include "normalization_layer.h"
+#include "option_list.h"
+#include "parser.h"
+#include "region_layer.h"
+#include "yolo_layer.h"
+#include "iseg_layer.h"
+#include "reorg_layer.h"
+#include "rnn_layer.h"
+#include "route_layer.h"
+#include "upsample_layer.h"
+#include "shortcut_layer.h"
+#include "softmax_layer.h"
+#include "lstm_layer.h"
+#include "utils.h"
 
-                networkLayerInfo[i].flBiasData = (float*)malloc(  caffeDataParserLayerInfo[i].numBiasValues 
-                                                                * sizeof(float)
-                                                             );
-                memcpy  (   networkLayerInfo[i].flBiasData, 
-                            caffeDataParserLayerInfo[i].biasData, 
-                            caffeDataParserLayerInfo[i].numBiasValues
-                            * sizeof(float)
-                        );
-            } else {
-                networkLayerInfo[i].flFilterData = NULL;
-                networkLayerInfo[i].flBiasData = NULL;
-            }
-        }
-        // End Code ---------------------------------------------------------------------------------------------------------------------------------     
 
-    } else if(precision == FIXED) {
-        
-        // Begin Code -------------------------------------------------------------------------------------------------------------------------------
+// espresso inludes
+#include "Network.hpp"
 
-        for(uint32_t i = 0; i < caffeDataParserLayerInfo.size(); i++) {
-            if(caffeDataParserLayerInfo[i].layerType == "LRN" || caffeDataParserLayerInfo[i].layerType == "Softmax") {
-                networkLayerInfo[i].precision = FLOAT; 
-            } else {
-                networkLayerInfo[i].precision = FIXED; 
-            }
-            networkLayerInfo[i].layerName               = caffeDataParserLayerInfo[i].layerName;     
-            networkLayerInfo[i].topLayerNames           = caffeDataParserLayerInfo[i].topLayerNames;    
-            networkLayerInfo[i].bottomLayerNames        = caffeDataParserLayerInfo[i].bottomLayerNames; 
-            networkLayerInfo[i].layerType               = caffeDataParserLayerInfo[i].layerType;       
-            networkLayerInfo[i].numInputRows            = caffeDataParserLayerInfo[i].numInputRows;     
-            networkLayerInfo[i].numInputCols            = caffeDataParserLayerInfo[i].numInputCols;     
-            networkLayerInfo[i].inputDepth              = caffeDataParserLayerInfo[i].inputDepth;       
-            networkLayerInfo[i].outputDepth             = caffeDataParserLayerInfo[i].outputDepth;  
-            networkLayerInfo[i].dinFxPtLength           = ESPRO_DEF_FXPT_LEN;      
-            networkLayerInfo[i].dinNumFracBits          = ESPRO_DEF_NUM_FRAC_BITS; 
-            networkLayerInfo[i].whtFxPtLength           = ESPRO_DEF_FXPT_LEN;     
-            networkLayerInfo[i].whtNumFracBits          = ESPRO_DEF_NUM_FRAC_BITS;
-            networkLayerInfo[i].doutFxPtLength          = ESPRO_DEF_FXPT_LEN;     
-            networkLayerInfo[i].doutNumFracBits         = ESPRO_DEF_NUM_FRAC_BITS;
-            networkLayerInfo[i].numKernelRows           = caffeDataParserLayerInfo[i].numKernelRows;    
-            networkLayerInfo[i].numKernelCols           = caffeDataParserLayerInfo[i].numKernelCols;    
-            networkLayerInfo[i].stride                  = caffeDataParserLayerInfo[i].stride;          
-            networkLayerInfo[i].padding                 = caffeDataParserLayerInfo[i].padding;
-            networkLayerInfo[i].localSize               = caffeDataParserLayerInfo[i].localSize;
-            networkLayerInfo[i].alpha                   = caffeDataParserLayerInfo[i].alpha;
-            networkLayerInfo[i].beta                    = caffeDataParserLayerInfo[i].beta;  
-            networkLayerInfo[i].group                   = caffeDataParserLayerInfo[i].group;   
-            networkLayerInfo[i].globalPooling           = caffeDataParserLayerInfo[i].globalPooling;         
-            if(caffeDataParserLayerInfo[i].layerType == "Convolution" || caffeDataParserLayerInfo[i].layerType == "InnerProduct") {
-                networkLayerInfo[i].fxFilterData = (FixedPoint_t*)malloc(sizeof(FixedPoint_t) * caffeDataParserLayerInfo[i].numFilterValues); 
-                for(int j = 0; j < caffeDataParserLayerInfo[i].numFilterValues; j++) {
-	                networkLayerInfo[i].fxFilterData[j] = FixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, caffeDataParserLayerInfo[i].filterData[j]);
-                }        
-                
-                networkLayerInfo[i].fxBiasData = (FixedPoint_t*)malloc(sizeof(FixedPoint_t) * caffeDataParserLayerInfo[i].numBiasValues);
-                for(int j = 0; j < caffeDataParserLayerInfo[i].numBiasValues; j++) {
-	                networkLayerInfo[i].fxBiasData[j] = FixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, caffeDataParserLayerInfo[i].biasData[j]);
-                } 
-                networkLayerInfo[i].numFilterValues = caffeDataParserLayerInfo[i].numFilterValues;
-            } else {
-                networkLayerInfo[i].fxFilterData = NULL;
-                networkLayerInfo[i].fxBiasData = NULL;
-            }
-        }
-        // End Code ---------------------------------------------------------------------------------------------------------------------------------     
-        
+
+void darknetDataTransform(network **net, vector<espresso::layerInfo_t> &networkLayerInfo, espresso::precision_t precision, string configFileName, string weightFileName) {
+	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------
+	*net = parse_network_cfg((char*)&configFileName[0]);
+	network *net_ptr = *net;
+	load_weights(net_ptr, (char*)&weightFileName[0]);
+	networkLayerInfo.resize(net_ptr->n + 1);
+	// END Code -------------------------------------------------------------------------------------------------------------------------------------
+	
+	
+    // BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------
+	networkLayerInfo[0] = espresso::layerInfo_t();
+	networkLayerInfo[0].precision = precision;
+	networkLayerInfo[0].layerType = "Input";
+	networkLayerInfo[0].layerName = "0_Data";
+	networkLayerInfo[0].inputDepth = net_ptr->layers[0].c;
+	networkLayerInfo[0].numInputRows = net_ptr->layers[0].h;
+	networkLayerInfo[0].numInputCols = net_ptr->layers[0].w;
+	// END Code -------------------------------------------------------------------------------------------------------------------------------------
+	
+	
+    for(uint32_t i = 0, j = 1; i < net_ptr->n; i++, j++) {
+	    networkLayerInfo[j] = espresso::layerInfo_t();
+	    // BEGIN Code -------------------------------------------------------------------------------------------------------------------------------
+	    if(net_ptr->layers[i].type == CONVOLUTIONAL) {
+		    networkLayerInfo[j].layerType = "Convolution";
+		    if (net_ptr->layers[i].batch_normalize) {			    
+			    networkLayerInfo[j].flBeta = 0.000001f;
+			    networkLayerInfo[j].darknetNormScaleBias = true;
+				networkLayerInfo[j].flMeanData = (float*)malloc(net_ptr->layers[i].n * sizeof(float));
+				memcpy(networkLayerInfo[j].flMeanData, net_ptr->layers[i].rolling_mean, net_ptr->layers[i].n * sizeof(float));
+				networkLayerInfo[j].flVarianceData = (float*)malloc(net_ptr->layers[i].n * sizeof(float));
+				memcpy(networkLayerInfo[j].flVarianceData, net_ptr->layers[i].rolling_variance, net_ptr->layers[i].n * sizeof(float));
+				networkLayerInfo[j].flScaleBiasData = (float*)malloc(net_ptr->layers[i].n * sizeof(float));
+				memcpy(networkLayerInfo[j].flScaleBiasData, net_ptr->layers[i].scales,  net_ptr->layers[i].n * sizeof(float));
+		    }
+			if(net_ptr->layers[i].activation == LEAKY) {
+				networkLayerInfo[j].activation = espresso::LEAKY;
+			} else if(net_ptr->layers[i].activation == LINEAR){
+				networkLayerInfo[j].activation = espresso::LINEAR;
+			}
+		    networkLayerInfo[j].darknetAct = true;
+	    } else if(net_ptr->layers[i].type == MAXPOOL) {
+		    networkLayerInfo[j].layerType = "Pooling_MAX";
+	    } else if(net_ptr->layers[i].type == AVGPOOL) {
+		    networkLayerInfo[j].layerType = "Pooling_AVG";
+	    } else if(net_ptr->layers[i].type == ROUTE) {
+		    networkLayerInfo[j].layerType = "Concat";
+		    for (int k = 0; k < net_ptr->layers[i].n; k++) {
+				networkLayerInfo[j].bottomLayerNames.push_back(networkLayerInfo[net_ptr->layers[i].input_layers[k] + 1].layerName);
+		    }
+	    } else if(net_ptr->layers[i].type == SHORTCUT){
+		    networkLayerInfo[j].layerType = "Residual";
+		    networkLayerInfo[j].bottomLayerNames.push_back(networkLayerInfo[j - 1].layerName);
+		    networkLayerInfo[j].bottomLayerNames.push_back(networkLayerInfo[net_ptr->layers[i].index + 1].layerName);
+	    } else if(net_ptr->layers[i].type == YOLO) {
+		    networkLayerInfo[j].layerType = "YOLO";
+		    networkLayerInfo[j].darknet_n_param = net_ptr->layers[i].n;
+			networkLayerInfo[j].darknet_classes_param = net_ptr->layers[i].classes;
+			networkLayerInfo[j].darknet_outputs_param = net_ptr->layers[i].outputs;
+			networkLayerInfo[j].precision = espresso::FLOAT;
+	    } else if(net_ptr->layers[i].type == UPSAMPLE) {
+		    networkLayerInfo[j].layerType = "UpSample";
+	    } else {
+			cout << "Skipped Darknet Layer " << i << endl;
+			continue;
+	    }
+	    // END Code ---------------------------------------------------------------------------------------------------------------------------------
+
+
+	    // BEGIN Code -------------------------------------------------------------------------------------------------------------------------------
+		if(networkLayerInfo[j].layerType == "YOLO") {
+			networkLayerInfo[j].precision = espresso::FLOAT;
+		} else {
+			networkLayerInfo[j].precision = precision;
+		}
+	    networkLayerInfo[j].layerName = to_string(j) + "_" + networkLayerInfo[j].layerType;
+	    networkLayerInfo[j].numInputRows = net_ptr->layers[i].h;
+		networkLayerInfo[j].numInputCols = net_ptr->layers[i].w;
+	    networkLayerInfo[j].inputDepth = net_ptr->layers[i].c;
+	    networkLayerInfo[j].outputDepth = net_ptr->layers[i].n;
+	    networkLayerInfo[j].dinFxPtLength = ESPRO_DEF_FXPT_LEN;
+	    networkLayerInfo[j].dinNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+		networkLayerInfo[j].whtFxPtLength = ESPRO_DEF_FXPT_LEN;
+		networkLayerInfo[j].whtNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+		networkLayerInfo[j].doutFxPtLength = ESPRO_DEF_FXPT_LEN;
+		networkLayerInfo[j].doutNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;    
+		networkLayerInfo[j].biasFxPtLength = ESPRO_DEF_FXPT_LEN;
+		networkLayerInfo[j].biasNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+		networkLayerInfo[j].scaleBiasFxPtLength = ESPRO_DEF_FXPT_LEN;
+		networkLayerInfo[j].scaleBiasNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+	    networkLayerInfo[j].leakyFxPtLength = ESPRO_DEF_FXPT_LEN;
+	    networkLayerInfo[j].leakyNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+	    networkLayerInfo[j].numKernelRows = net_ptr->layers[i].size;
+		networkLayerInfo[j].numKernelCols = net_ptr->layers[i].size;
+	    networkLayerInfo[j].stride = net_ptr->layers[i].stride;
+	    networkLayerInfo[j].padding = net_ptr->layers[i].pad;	    
+	    networkLayerInfo[j].numFilterValues = net_ptr->layers[i].nweights;
+	    networkLayerInfo[j].group = net_ptr->layers[i].groups;
+	    if (networkLayerInfo[j].layerType == "Convolution" && precision == espresso::FLOAT) {
+			networkLayerInfo[j].flFilterData = (float*)malloc(networkLayerInfo[j].numFilterValues * sizeof(float));
+			memcpy(networkLayerInfo[j].flFilterData, net_ptr->layers[i].weights, networkLayerInfo[j].numFilterValues * sizeof(float));
+			networkLayerInfo[j].flBiasData = (float*)malloc(networkLayerInfo[j].outputDepth * sizeof(float));
+			memcpy(networkLayerInfo[j].flBiasData, net_ptr->layers[i].biases,  networkLayerInfo[j].outputDepth * sizeof(float));
+			if (networkLayerInfo[j].darknetNormScaleBias) {
+				for (int a = 0; a < networkLayerInfo[j].outputDepth; a++) {
+					networkLayerInfo[j].flBiasData[a] 
+						= ((-networkLayerInfo[j].flMeanData[a] * networkLayerInfo[j].flScaleBiasData[a]) / sqrt(networkLayerInfo[j].flVarianceData[a]))
+							+ (networkLayerInfo[j].flBeta * networkLayerInfo[j].flScaleBiasData[a]) + networkLayerInfo[j].flBiasData[a];
+					for (int b = 0; b < (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth); b++) {
+						index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b)
+							= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b) 
+								* networkLayerInfo[j].flScaleBiasData[a])
+								/ sqrt(networkLayerInfo[j].flVarianceData[a]);
+					}
+				}	    
+			}
+		} else if(networkLayerInfo[j].layerType == "Convolution" && precision == espresso::FIXED) {
+			networkLayerInfo[j].fxFilterData = (fixedPoint_t*)malloc(networkLayerInfo[j].numFilterValues * sizeof(fixedPoint_t));
+			for(int a = 0; a < networkLayerInfo[j].numFilterValues; a++){
+				networkLayerInfo[j].fxFilterData[a] = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, net_ptr->layers[i].weights[a]);
+			}
+			networkLayerInfo[j].fxBiasData = (fixedPoint_t*)malloc(networkLayerInfo[j].outputDepth * sizeof(fixedPoint_t));
+			for(int a = 0; a < networkLayerInfo[j].outputDepth; a++){
+				networkLayerInfo[j].fxBiasData[a] = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, net_ptr->layers[i].biases[a]);
+			}
+			if (networkLayerInfo[j].darknetNormScaleBias) {
+				fixedPoint_t flBeta = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[j].flBeta);
+				for (int a = 0; a < networkLayerInfo[j].outputDepth; a++) {
+					fixedPoint_t fxScale = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[j].flScaleBiasData[a]);
+					fixedPoint_t fxVariance = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, sqrt(networkLayerInfo[j].flVarianceData[a]));
+					fixedPoint_t fxMean = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[j].flMeanData[a]);
+					if (fxVariance == 0) {
+						networkLayerInfo[j].fxBiasData[a] 
+							= ((-fxMean * fxScale))
+								+ (flBeta * fxScale) + networkLayerInfo[j].fxBiasData[a];
+			
+					} else {
+						networkLayerInfo[j].fxBiasData[a] 
+							= ((-fxMean * fxScale) / fxVariance)
+								+ (flBeta * fxScale) + networkLayerInfo[j].fxBiasData[a];
+					}
+					for (int b = 0; b < (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth); b++) {
+						if (fxVariance == 0 && fxScale == 0) {
+							index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b)
+								= index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b);
+						} else if(fxVariance == 0 && fxScale != 0) {
+							index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b)
+								= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b) 
+									* fxScale);
+						} else if(fxVariance != 0 && fxScale == 0) {
+							index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b)
+								= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b) 
+									/ fxVariance);
+						} else {
+							index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b)
+								= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b) 
+									* fxScale)
+									/ fxVariance;
+						}
+					}
+				}		    
+			}
+		}
+	    // END Code ---------------------------------------------------------------------------------------------------------------------------------
     }
+
+	
+	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------
+	// Set layer output and input layers ie bottom and top layers
+	for(uint32_t i = 1; i < networkLayerInfo.size(); i++) {
+		if(networkLayerInfo[i].layerType != "Concat" && networkLayerInfo[i].layerType != "Residual") {
+			networkLayerInfo[i].bottomLayerNames.push_back(networkLayerInfo[i - 1].layerName);
+		} 
+	}	
+	for(uint32_t i = 1; i < networkLayerInfo.size(); i++) {
+		networkLayerInfo[i].topLayerNames.push_back(networkLayerInfo[i].layerName);
+	}
+	// END Code -------------------------------------------------------------------------------------------------------------------------------------
+
+	
+	// Clean up
+	// free(net_ptr)
 }
 
 
 int main(int argc, char **argv) {
-    
-    // printModelProtocalBuffer(argv[1], argv[2]);
-    // exit(0);
+	
 
-    
-	// VGG
-    string protoTxt = "../../../caffe/models/vgg16/vgg16_deploy.prototxt";
-	string model = "../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel"; 
-    string beginLayer = "data"; 
-    string endLayer = "prob";
-	
-	
-	// AlexNet
-	// string protoTxt = "../../../caffe/models/bvlc_alexnet/deploy.prototxt";
-	// string model = "../../../caffe/models/bvlc_alexnet/bvlc_alexnet.caffemodel"; 
-	// string beginLayer = "data"; 
-	// string endLayer = "fc6";
-	
-	
-	// Goolge Net
-	// string protoTxt = "../../../caffe/models/bvlc_googlenet/deploy.prototxt";
-	// string model = "../../../caffe/models/bvlc_googlenet/bvlc_googlenet.caffemodel"; 
-	// string beginLayer = "data"; 
-	// string endLayer = "prob";
-	
-	
-	
-    string fixed_float = "float";    
-	Mat img = imread("../scripts/image.png", IMREAD_COLOR);
+	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------	
+	espresso::precision_t precision = espresso::FIXED;
+	network *yolo_net = NULL;
+	vector<espresso::layerInfo_t> networkLayerInfo;
+	darknetDataTransform(&yolo_net, networkLayerInfo, precision, "/home/ikenna/IkennaWorkSpace/darknet/cfg/yolov3.cfg", "/home/ikenna/IkennaWorkSpace/darknet/cfg/yolov3.weights");
+	vector<int> outputLayers;
+	for(int i = 0; i < networkLayerInfo.size(); i++) {
+		if (networkLayerInfo[i].layerType == "YOLO") {
+			outputLayers.push_back(i);
+		}
+	}	
+	Network *net = new Network(networkLayerInfo, outputLayers);
+	// END Code -------------------------------------------------------------------------------------------------------------------------------------
 
-   
-    // Read in model
-	vector<caffeDataParser::layerInfo_t> caffeDataParserLayerInfo = parseCaffeData(protoTxt, model);
-    ofstream fd;
-    
-    if(fixed_float == "float" || fixed_float == "both") {
-        vector<espresso::layerInfo_t> networkLayerInfo;
-        networkLayerInfo.resize(caffeDataParserLayerInfo.size());
-        dataTransform(networkLayerInfo, caffeDataParserLayerInfo, FLOAT);
-        Network *network = new Network(networkLayerInfo);
-        // Input Image, for dcNet remember to subtract 127 from each pixel value to compare results (float)
-        Blob_t inputBlob;
-        int beginLayerIdx = network->ReturnLayerIdx(beginLayer);   
-        int endLayerIdx = network->ReturnLayerIdx(endLayer);
-        if(endLayerIdx != -1 && beginLayerIdx != -1) {
-            inputBlob.flData = new float[img.channels() * img.rows * img.cols]; 
-            inputBlob.depth = img.channels();
-            inputBlob.numRows = img.rows;
-            inputBlob.numCols = img.cols;    
-            for(int c = 0; c < img.channels(); c++) {
-              for(int i=0; i < img.rows; i++) {
-                  for(int j = 0; j < img.cols; j++) { 
-                      int a = img.at<cv::Vec3b>(i,j)[c];
-                      //index3D(img.channels(), img.rows, img.cols, inputBlob.flData, c, i, j) = (float)a - 127.0f;   // for dcNet
-                      index3D(img.channels(), img.rows, img.cols, inputBlob.flData, c, i, j) = (float)a;
-                  }
-              }
-            }  
-            network->m_cnn[0]->m_inputDepth     = inputBlob.depth;
-            network->m_cnn[0]->m_numInputRows   = inputBlob.numRows;
-            network->m_cnn[0]->m_numInputCols   = inputBlob.numCols;
-            network->m_cnn[0]->m_blob.flData    = inputBlob.flData;
-	        
-	        struct timespec finish;
-	        struct timespec start;
-	        float elapsedTime;			
-	        clock_gettime(CLOCK_MONOTONIC, &start);	
-            network->Forward(beginLayer, endLayer);
-	        clock_gettime(CLOCK_MONOTONIC, &finish);
-	        elapsedTime = diff(start, finish);   // units in seconds
-	        cout << elapsedTime << endl;
-	        exit(0);           
-        
-            fd.open("output_espresso.txt");
-            if(network->m_cnn[endLayerIdx]->m_blob.depth > 1 && network->m_cnn[endLayerIdx]->m_blob.numRows > 1 && network->m_cnn[endLayerIdx]->m_blob.numCols > 1) {
-                for(int i = 0; i < network->m_cnn[endLayerIdx]->m_blob.depth; i++) {
-                    for(int j = 0; j < network->m_cnn[endLayerIdx]->m_blob.numRows; j++) {
-                        for(int k = 0; k < network->m_cnn[endLayerIdx]->m_blob.numCols; k++) {
-                            fd << index3D(  
-                                            network->m_cnn[endLayerIdx]->m_blob.depth, 
-                                            network->m_cnn[endLayerIdx]->m_blob.numRows, 
-                                            network->m_cnn[endLayerIdx]->m_blob.numCols, 
-                                            network->m_cnn[endLayerIdx]->m_blob.flData, i, j, k
-                                         ) << " ";
-                        }
-                        fd << endl;
-                    }
-                    fd << endl << endl << endl;
-                }
-            } else {
-                for(int i = 0; i < network->m_cnn[endLayerIdx]->m_blob.depth; i++) {
-                    fd << network->m_cnn[endLayerIdx]->m_blob.flData[i] << endl;
-                }
-            }
-            fd.close();
-        }
-        delete network;
-    }    
-    
-    if(fixed_float == "fixed" || fixed_float == "both") {       
-        vector<espresso::layerInfo_t> networkLayerInfo_fxPt;   
-        networkLayerInfo_fxPt.resize(caffeDataParserLayerInfo.size());
-        dataTransform(networkLayerInfo_fxPt, caffeDataParserLayerInfo, FIXED);
-        Network *network_fxPt = new Network(networkLayerInfo_fxPt);
-        Blob_t inputBlob_fxPt;
-        int beginLayerIdx = network_fxPt->ReturnLayerIdx(beginLayer);   
-        int endLayerIdx = network_fxPt->ReturnLayerIdx(endLayer);
-        if(endLayerIdx != -1 && beginLayerIdx != -1) {           
-            
-            // Input Image, for dcNet remember to subtract 127 from each pixel value to compare results (fixedPoint)
-            inputBlob_fxPt.fxData = new FixedPoint_t[img.channels() * img.rows * img.cols]; 
-            inputBlob_fxPt.depth = img.channels();
-            inputBlob_fxPt.numRows = img.rows;
-            inputBlob_fxPt.numCols = img.cols;    
-            for(int c = 0; c < img.channels(); c++) {
-                for(int i=0; i < img.rows; i++) {
-                    for(int j = 0; j < img.cols; j++) { 
-                        int a = img.at<cv::Vec3b>(i,j)[c];
-                        //float b = (float)a - 127.0f; // for dcNet
-                        index3D(img.channels(), img.rows, img.cols, inputBlob_fxPt.fxData, c, i, j) = FixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, a);
-                    }
-                }
-            } 
-            network_fxPt->m_cnn[0]->m_inputDepth     = inputBlob_fxPt.depth;
-            network_fxPt->m_cnn[0]->m_numInputRows   = inputBlob_fxPt.numRows;
-            network_fxPt->m_cnn[0]->m_numInputCols   = inputBlob_fxPt.numCols;
-            network_fxPt->m_cnn[0]->m_blob.fxData    = inputBlob_fxPt.fxData;
-            network_fxPt->Forward(beginLayer, endLayer);
-            
-            fd.open("output_espresso_fxPt.txt");
-            if(network_fxPt->m_cnn[endLayerIdx]->m_blob.depth > 1 && network_fxPt->m_cnn[endLayerIdx]->m_blob.numRows > 1 && network_fxPt->m_cnn[endLayerIdx]->m_blob.numCols > 1) {
-                for(int i = 0; i < network_fxPt->m_cnn[endLayerIdx]->m_blob.depth; i++) {
-                    for(int j = 0; j < network_fxPt->m_cnn[endLayerIdx]->m_blob.numRows; j++) {
-                        for(int k = 0; k < network_fxPt->m_cnn[endLayerIdx]->m_blob.numCols; k++) {
-                            fd << FixedPoint::toFloat(ESPRO_DEF_NUM_FRAC_BITS, index3D(  
-                                                            network_fxPt->m_cnn[endLayerIdx]->m_blob.depth, 
-                                                            network_fxPt->m_cnn[endLayerIdx]->m_blob.numRows, 
-                                                            network_fxPt->m_cnn[endLayerIdx]->m_blob.numCols, 
-                                                            network_fxPt->m_cnn[endLayerIdx]->m_blob.fxData, i, j, k)
-                                                        ) << " ";
-                        }
-                        fd << endl;
-                    }
-                    fd << endl << endl << endl;
-                }
-            } else {
-                for(int i = 0; i < network_fxPt->m_cnn[endLayerIdx]->m_blob.depth; i++) {
-	                if (network_fxPt->m_cnn[endLayerIdx]->m_precision == FIXED) {
-		                fd << FixedPoint::toFloat(ESPRO_DEF_NUM_FRAC_BITS, network_fxPt->m_cnn[endLayerIdx]->m_blob.fxData[i]) << endl;
-	                } else {
-		                fd << network_fxPt->m_cnn[endLayerIdx]->m_blob.flData[i] << endl;
-	                }
+	
+	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------		
+	image im = load_image_color("/home/ikenna/IkennaWorkSpace/darknet/data/dog.jpg", 0, 0);
+	image sized = letterbox_image(im, networkLayerInfo[0].numInputRows, networkLayerInfo[0].numInputCols);
+	FILE *fd;
+	// fd = fopen("input.txt", "w");
+	// for (int i = 0; i < networkLayerInfo[0].inputDepth; i++) {
+	// 	for (int j = 0; j < networkLayerInfo[0].numInputRows; j++) {
+	// 		for (int k = 0; k < networkLayerInfo[0].numInputCols; k++) {
+	// 			fprintf(fd, "%f ", index3D(networkLayerInfo[0].inputDepth, networkLayerInfo[0].numInputRows, networkLayerInfo[0].numInputCols, sized.data, i, j, k));
+	// 		}
+	// 		fprintf(fd, "\n");
+	// 	}
+	// 	fprintf(fd, "\n\n\n");
+	// }
+	// fclose(fd);	
+	if(precision == espresso::FLOAT) {
+		net->m_cnn[0]->m_blob.flData = sized.data;
+	} else {
+		net->m_cnn[0]->m_blob.fxData = (fixedPoint_t*)malloc((networkLayerInfo[0].numInputRows * networkLayerInfo[0].numInputCols * networkLayerInfo[0].inputDepth) * sizeof(fixedPoint_t));
+		for(int i = 0; i < (networkLayerInfo[0].numInputRows * networkLayerInfo[0].numInputCols * networkLayerInfo[0].inputDepth); i++) {
+			net->m_cnn[0]->m_blob.fxData[i] = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, sized.data[i]);
+		}
+	}
+	// END Code -------------------------------------------------------------------------------------------------------------------------------------
 
-                }
-            }
-            fd.close();
-        }
-        delete network_fxPt;
-    }
-    
 
-    // DcNet Output
-    // fd.open("obj.txt");
-    // for(int i = 0; i < network->m_outputLayers[3]->m_blob.depth; i++) {
-    //     for(int j = 0; j < network->m_outputLayers[3]->m_blob.numRows; j++) {
-    //         for(int k = 0; k < network->m_outputLayers[3]->m_blob.numCols; k++) {
-    //             fd << index3D(network->m_outputLayers[3]->m_blob.depth, network->m_outputLayers[3]->m_blob.numRows, network->m_outputLayers[3]->m_blob.numCols, network->m_outputLayers[3]->m_blob.data, i, j, k) << " ";
-    //         }
-    //         fd << endl;
-    //     }
-    //     fd << endl << endl << endl;
-    // }
-    // fd.close();
-    // 
-    // fd.open("cls.txt");
-    // for(int i = 0; i < network->m_outputLayers[4]->m_blob.depth; i++) {
-    //     for(int j = 0; j < network->m_outputLayers[4]->m_blob.numRows; j++) {
-    //         for(int k = 0; k < network->m_outputLayers[4]->m_blob.numCols; k++) {
-    //             fd << index3D(network->m_outputLayers[4]->m_blob.depth, network->m_outputLayers[4]->m_blob.numRows, network->m_outputLayers[4]->m_blob.numCols, network->m_outputLayers[4]->m_blob.data, i, j, k) << " ";
-    //         }
-    //         fd << endl;
-    //     }
-    //     fd << endl << endl << endl;
-    // }
-    // fd.close();
-    // 
-    // fd.open("loc.txt");
-    // for(int i = 0; i < network->m_outputLayers[5]->m_blob.depth; i++) {
-    //     for(int j = 0; j < network->m_outputLayers[5]->m_blob.numRows; j++) {
-    //         for(int k = 0; k < network->m_outputLayers[5]->m_blob.numCols; k++) {
-    //             fd << index3D(network->m_outputLayers[5]->m_blob.depth, network->m_outputLayers[5]->m_blob.numRows, network->m_outputLayers[5]->m_blob.numCols, network->m_outputLayers[5]->m_blob.data, i, j, k) << " ";
-    //         }
-    //         fd << endl;
-    //     }
-    //     fd << endl << endl << endl;
-    // }
-    // fd.close();  
-    
-    
-    for(uint32_t i = 0; i < caffeDataParserLayerInfo.size(); i++) {
-        if(caffeDataParserLayerInfo[i].layerType == "Convolution" || caffeDataParserLayerInfo[i].layerType == "InnerProduct") {
-            free(caffeDataParserLayerInfo[i].filterData);
-            free(caffeDataParserLayerInfo[i].biasData);
+	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------		
+	string beginLayerName = "0_Data";
+	string endLayerName = "107_YOLO";
+	int eIdx = net->ReturnLayerIdx(endLayerName);
+	net->Forward(beginLayerName, endLayerName);
+	// fd = fopen("output.txt", "w");
+	// for (int i = 0; i < net->m_cnn[eIdx]->m_blob.depth; i++) {
+	// 	for (int j = 0; j < net->m_cnn[eIdx]->m_blob.numRows; j++) {
+	// 		for (int k = 0; k < net->m_cnn[eIdx]->m_blob.numCols; k++) {
+	// 			if (net->m_cnn[eIdx]->m_precision == espresso::FLOAT) {
+	// 				fprintf(fd, "%f ", index3D(net->m_cnn[eIdx]->m_blob.depth, net->m_cnn[eIdx]->m_blob.numRows, net->m_cnn[eIdx]->m_blob.numCols, net->m_cnn[eIdx]->m_blob.flData, i, j, k));
+	// 			} else {
+	// 				fprintf(fd, "%f ", fixedPoint::toFloat(net->m_cnn[eIdx]->m_doutNumFracBits, index3D(net->m_cnn[eIdx]->m_blob.depth, net->m_cnn[eIdx]->m_blob.numRows, net->m_cnn[eIdx]->m_blob.numCols, net->m_cnn[eIdx]->m_blob.fxData, i, j, k)));
+	// 			}
+	// 		}
+	// 		fprintf(fd, "\n");
+	// 	}
+	// 	fprintf(fd, "\n\n\n");
+	// }
+	// fclose(fd);
+	// END Code -------------------------------------------------------------------------------------------------------------------------------------
+
+
+	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------
+	for(uint32_t i = 0; i < net->m_cnn.size(); i++){
+        if(net->m_cnn[i]->m_layerType == "YOLO") {
+	        layer *l = &yolo_net->layers[i - 1];
+	        l->output = (float*)net->m_cnn[i]->m_blob.flData;
         }
     }
- 
+    char **names = get_labels("/home/ikenna/IkennaWorkSpace/darknet/data/coco.names");
+    image **alphabet = load_alphabet();
+	int nboxes = 0;
+	layer l = yolo_net->layers[yolo_net->n-1];
+	detection *dets = get_network_boxes(yolo_net, im.w, im.h, THRESH, HIER_THRESH, 0, 1, &nboxes);
+	if(NMS) do_nms_sort(dets, nboxes, l.classes, NMS);
+    draw_detections(im, dets, nboxes, 0.5f, names, alphabet, l.classes);
+    save_image(im, "predictions");
+	free_detections(dets, nboxes);
+    free_image(im);
+    free_image(sized);
+	// END Code -------------------------------------------------------------------------------------------------------------------------------------
+	
+	
+	// Clean up
+	delete net;
+	
+	
+	
     return 0;
 }
