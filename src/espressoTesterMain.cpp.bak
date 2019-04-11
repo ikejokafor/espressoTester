@@ -128,8 +128,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iomanip>
 #include <fstream>
-#include "util.hpp"
-#include "caffeClassifier.hpp"
 using namespace std;
 using namespace cv;
 
@@ -240,25 +238,23 @@ void dataTransform(vector<espresso::layerInfo_t> &networkLayerInfo, vector<caffe
 
 
 int main(int argc, char **argv) {
-	
-
-#ifdef ESPRESSO_CODE
+    
     // printModelProtocalBuffer(argv[1], argv[2]);
     // exit(0);
 
     
 	// VGG
-    string protoTxt = "../../../caffe/models/vgg16/vgg16_deploy.prototxt";
-	string model = "../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel"; 
-    string beginLayer = "data"; 
-    string endLayer = "prob";
+    // string protoTxt = "../../../caffe/models/vgg16/vgg16_deploy.prototxt";
+	// string model = "../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel"; 
+    // string beginLayer = "data"; 
+    // string endLayer = "prob";
 	
 	
 	// AlexNet
-	// string protoTxt = "../../../caffe/models/bvlc_alexnet/deploy.prototxt";
-	// string model = "../../../caffe/models/bvlc_alexnet/bvlc_alexnet.caffemodel"; 
-	// string beginLayer = "data"; 
-	// string endLayer = "fc6";
+	string protoTxt = "../../../caffe/models/bvlc_alexnet/deploy.prototxt";
+	string model = "../../../caffe/models/bvlc_alexnet/bvlc_alexnet.caffemodel"; 
+	string beginLayer = "data"; 
+	string endLayer = "fc6";
 	
 	
 	// Goolge Net
@@ -304,16 +300,8 @@ int main(int argc, char **argv) {
             network->m_cnn[0]->m_numInputRows   = inputBlob.numRows;
             network->m_cnn[0]->m_numInputCols   = inputBlob.numCols;
             network->m_cnn[0]->m_blob.flData    = inputBlob.flData;
-	        
-	        struct timespec finish;
-	        struct timespec start;
-	        float elapsedTime;			
-	        clock_gettime(CLOCK_MONOTONIC, &start);	
             network->Forward(beginLayer, endLayer);
-	        clock_gettime(CLOCK_MONOTONIC, &finish);
-	        elapsedTime = diff(start, finish);   // units in seconds
-	        cout << elapsedTime << endl;
-	        exit(0);           
+        
         
             fd.open("output_espresso.txt");
             if(network->m_cnn[endLayerIdx]->m_blob.depth > 1 && network->m_cnn[endLayerIdx]->m_blob.numRows > 1 && network->m_cnn[endLayerIdx]->m_blob.numCols > 1) {
@@ -447,43 +435,6 @@ int main(int argc, char **argv) {
             free(caffeDataParserLayerInfo[i].biasData);
         }
     }
-#else
-	//string model_file   = argv[1];
-	//string trained_file = argv[2];
-	
-
-	string model_file   = "../../../caffe/models/vgg16/vgg16_deploy.prototxt";
-	string trained_file = "../../../caffe/models/vgg16/VGG_ILSVRC_16_layers.caffemodel";
-	string mean_file    = "imagenet_mean.binaryproto";
-	string label_file   = "synset_words.txt";
-	Classifier classifier(model_file, trained_file, mean_file, label_file);
-
-	string file ="../scripts/image.png";
-
-	std::cout << "---------- Prediction for "
-	          << file << " ----------" << std::endl;
-
-	cv::Mat img = cv::imread(file, -1);
-	CHECK(!img.empty()) << "Unable to decode image " << file;
-
-	
-	struct timespec finish;
-	struct timespec start;
-	float elapsedTime;			
-	clock_gettime(CLOCK_MONOTONIC, &start);		
-	std::vector<Prediction> predictions = classifier.Classify(img);
-	clock_gettime(CLOCK_MONOTONIC, &finish);
-	elapsedTime = diff(start, finish);    // units in seconds
-	cout << elapsedTime << endl;	
-
-	/* Print the top N predictions. */
-	for (size_t i = 0; i < predictions.size(); ++i) {
-		Prediction p = predictions[i];
-		std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
-		          << p.first << "\"" << std::endl;
-	}
-      		
-#endif	
  
     return 0;
 }

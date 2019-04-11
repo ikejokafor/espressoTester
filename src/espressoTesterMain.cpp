@@ -1,13 +1,16 @@
 // Definitions
-#define THRESH			0.5f
-#define HIER_THRESH		0.5f
-#define NMS				0.45f
+#define THRESH						0.5f
+#define HIER_THRESH					0.5f
+#define NMS							0.45f
+#define YOLO_DEF_FXPT_LEN			16
+#define YOLO_DEF_NUM_FRAC_BITS		14
+#define YOLO_MAX_NUM_INT_BITS		(YOLO_DEF_FXPT_LEN - 1)
+#define YOLO_MAX_NUM_FRAC_BITS      (YOLO_DEF_FXPT_LEN - 2)
 
 
 // System includes
 #include <iomanip>
 #include <fstream>
-#include "util.hpp"
 using namespace std;
 
 // opencv includes
@@ -55,12 +58,73 @@ using namespace std;
 #include "Network.hpp"
 
 
+// structs
+struct layerPrecList_t {
+		bool dinNorm_0_1;
+		int dinFxPtLength;
+        int dinNumFracBits;
+        int whtFxPtLength;
+        int whtNumFracBits;
+        int doutFxPtLength;
+        int doutNumFracBits;	    
+	    int biasFxPtLength;
+        int biasNumFracBits; 
+	    int leakyFxPtLength;
+	    int	leakyNumFracBits;
+		float minBias;
+		float maxBias;
+		float minFilter;
+		float maxFilter;
+		float minNormBias;
+		float maxNormBias;
+		float minNormFilter;
+		float maxNormFilter;
+		float minScale;
+		float maxScale;
+		float minMean;
+		float maxMean;
+		float minSqrtVariance;
+		float maxSqrtVariance;
+};
+	
+
 void darknetDataTransform(network **net, vector<espresso::layerInfo_t> &networkLayerInfo, espresso::precision_t precision, string configFileName, string weightFileName) {
 	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------
 	*net = parse_network_cfg((char*)&configFileName[0]);
 	network *net_ptr = *net;
 	load_weights(net_ptr, (char*)&weightFileName[0]);
 	networkLayerInfo.resize(net_ptr->n + 1);
+	vector<layerPrecList_t> layerPrecList;
+	layerPrecList.resize(net_ptr->n + 1);
+	for (int i = 0; i < layerPrecList.size(); i++) {
+		layerPrecList[i].dinNorm_0_1 = false;
+		layerPrecList[i].dinFxPtLength = ESPRO_DEF_FXPT_LEN;
+		layerPrecList[i].dinNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+		layerPrecList[i].whtFxPtLength = ESPRO_DEF_FXPT_LEN;
+		layerPrecList[i].whtNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+		layerPrecList[i].doutFxPtLength = ESPRO_DEF_FXPT_LEN;
+		layerPrecList[i].doutNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;	
+		layerPrecList[i].biasFxPtLength = ESPRO_DEF_FXPT_LEN;
+		layerPrecList[i].biasNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+		layerPrecList[i].leakyFxPtLength = ESPRO_DEF_FXPT_LEN;
+		layerPrecList[i].leakyNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
+	    layerPrecList[i].minBias = FLT_MAX;
+	    layerPrecList[i].maxBias = -FLT_MAX;
+	    layerPrecList[i].minFilter = FLT_MAX;
+	    layerPrecList[i].maxFilter = -FLT_MAX;
+	    layerPrecList[i].minNormBias = FLT_MAX;
+	    layerPrecList[i].maxNormBias = -FLT_MAX;
+	    layerPrecList[i].minNormFilter = FLT_MAX;
+	    layerPrecList[i].maxNormFilter = -FLT_MAX;
+	    layerPrecList[i].minScale = FLT_MAX;
+	    layerPrecList[i].maxScale = -FLT_MAX;
+	    layerPrecList[i].minMean = FLT_MAX;
+	    layerPrecList[i].maxMean = -FLT_MAX;
+	    layerPrecList[i].minSqrtVariance = FLT_MAX;
+		layerPrecList[i].maxSqrtVariance = FLT_MAX;
+	}
+	FILE *fd;
+	FILE *fd0;
 	// END Code -------------------------------------------------------------------------------------------------------------------------------------
 	
 	
@@ -75,7 +139,7 @@ void darknetDataTransform(network **net, vector<espresso::layerInfo_t> &networkL
 	// END Code -------------------------------------------------------------------------------------------------------------------------------------
 	
 	
-    for(uint32_t i = 0, j = 1; i < net_ptr->n; i++, j++) {
+    for(int i = 0, j = 1; i < net_ptr->n; i++, j++) {
 	    networkLayerInfo[j] = espresso::layerInfo_t();
 	    // BEGIN Code -------------------------------------------------------------------------------------------------------------------------------
 	    if(net_ptr->layers[i].type == CONVOLUTIONAL) {
@@ -83,12 +147,28 @@ void darknetDataTransform(network **net, vector<espresso::layerInfo_t> &networkL
 		    if (net_ptr->layers[i].batch_normalize) {			    
 			    networkLayerInfo[j].flBeta = 0.000001f;
 			    networkLayerInfo[j].darknetNormScaleBias = true;
-				networkLayerInfo[j].flMeanData = (float*)malloc(net_ptr->layers[i].n * sizeof(float));
-				memcpy(networkLayerInfo[j].flMeanData, net_ptr->layers[i].rolling_mean, net_ptr->layers[i].n * sizeof(float));
-				networkLayerInfo[j].flVarianceData = (float*)malloc(net_ptr->layers[i].n * sizeof(float));
-				memcpy(networkLayerInfo[j].flVarianceData, net_ptr->layers[i].rolling_variance, net_ptr->layers[i].n * sizeof(float));
-				networkLayerInfo[j].flScaleBiasData = (float*)malloc(net_ptr->layers[i].n * sizeof(float));
-				memcpy(networkLayerInfo[j].flScaleBiasData, net_ptr->layers[i].scales,  net_ptr->layers[i].n * sizeof(float));
+			    // PROFILE -------------------------------------------------------------------------------------------------------------------------------------
+			    for (int a = 0; a < net_ptr->layers[i].n; a++) {
+				    if (net_ptr->layers[i].scales[a] < layerPrecList[j].minScale ) {
+						layerPrecList[j].minScale = net_ptr->layers[i].scales[a];
+					}
+					if (net_ptr->layers[i].scales[a] > layerPrecList[j].maxScale) {
+						layerPrecList[j].maxScale = net_ptr->layers[i].scales[a];
+					}
+				    if (net_ptr->layers[i].rolling_mean[a] < layerPrecList[j].minMean ) {
+						layerPrecList[j].minMean = net_ptr->layers[i].rolling_mean[a];
+					}
+					if (net_ptr->layers[i].rolling_mean[a] > layerPrecList[j].maxMean) {
+						layerPrecList[j].maxMean = net_ptr->layers[i].rolling_mean[a];
+					}
+					if (sqrtf(net_ptr->layers[i].rolling_variance[a]) < layerPrecList[j].minSqrtVariance ) {
+						layerPrecList[j].minSqrtVariance = net_ptr->layers[i].rolling_variance[a];
+					}
+					if (sqrtf(net_ptr->layers[i].rolling_variance[a]) > layerPrecList[j].maxSqrtVariance) {
+						layerPrecList[j].maxSqrtVariance = net_ptr->layers[i].rolling_variance[a];
+					}
+			    }
+				// PROFILE -------------------------------------------------------------------------------------------------------------------------------------
 		    }
 			if(net_ptr->layers[i].activation == LEAKY) {
 				networkLayerInfo[j].activation = espresso::LEAKY;
@@ -135,18 +215,6 @@ void darknetDataTransform(network **net, vector<espresso::layerInfo_t> &networkL
 		networkLayerInfo[j].numInputCols = net_ptr->layers[i].w;
 	    networkLayerInfo[j].inputDepth = net_ptr->layers[i].c;
 	    networkLayerInfo[j].outputDepth = net_ptr->layers[i].n;
-	    networkLayerInfo[j].dinFxPtLength = ESPRO_DEF_FXPT_LEN;
-	    networkLayerInfo[j].dinNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
-		networkLayerInfo[j].whtFxPtLength = ESPRO_DEF_FXPT_LEN;
-		networkLayerInfo[j].whtNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
-		networkLayerInfo[j].doutFxPtLength = ESPRO_DEF_FXPT_LEN;
-		networkLayerInfo[j].doutNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;    
-		networkLayerInfo[j].biasFxPtLength = ESPRO_DEF_FXPT_LEN;
-		networkLayerInfo[j].biasNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
-		networkLayerInfo[j].scaleBiasFxPtLength = ESPRO_DEF_FXPT_LEN;
-		networkLayerInfo[j].scaleBiasNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
-	    networkLayerInfo[j].leakyFxPtLength = ESPRO_DEF_FXPT_LEN;
-	    networkLayerInfo[j].leakyNumFracBits = ESPRO_DEF_NUM_FRAC_BITS;
 	    networkLayerInfo[j].numKernelRows = net_ptr->layers[i].size;
 		networkLayerInfo[j].numKernelCols = net_ptr->layers[i].size;
 	    networkLayerInfo[j].stride = net_ptr->layers[i].stride;
@@ -161,91 +229,227 @@ void darknetDataTransform(network **net, vector<espresso::layerInfo_t> &networkL
 			if (networkLayerInfo[j].darknetNormScaleBias) {
 				for (int a = 0; a < networkLayerInfo[j].outputDepth; a++) {
 					networkLayerInfo[j].flBiasData[a] 
-						= ((-networkLayerInfo[j].flMeanData[a] * networkLayerInfo[j].flScaleBiasData[a]) / sqrt(networkLayerInfo[j].flVarianceData[a]))
-							+ (networkLayerInfo[j].flBeta * networkLayerInfo[j].flScaleBiasData[a]) + networkLayerInfo[j].flBiasData[a];
+						= ((-net_ptr->layers[i].rolling_mean[a] * net_ptr->layers[i].scales[a]) / sqrtf(net_ptr->layers[i].rolling_variance[a]))
+							+ (networkLayerInfo[j].flBeta * net_ptr->layers[i].scales[a]) + networkLayerInfo[j].flBiasData[a];
 					for (int b = 0; b < (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth); b++) {
 						index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b)
 							= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b) 
-								* networkLayerInfo[j].flScaleBiasData[a])
-								/ sqrt(networkLayerInfo[j].flVarianceData[a]);
+								* net_ptr->layers[i].scales[a])
+								/ sqrtf(net_ptr->layers[i].rolling_variance[a]);
 					}
-				}	    
+				}
+				
 			}
 		} else if(networkLayerInfo[j].layerType == "Convolution" && precision == espresso::FIXED) {
+			networkLayerInfo[j].flFilterData = (float*)malloc(networkLayerInfo[j].numFilterValues * sizeof(float));
+			memcpy(networkLayerInfo[j].flFilterData, net_ptr->layers[i].weights, networkLayerInfo[j].numFilterValues * sizeof(float));
+			networkLayerInfo[j].flBiasData = (float*)malloc(networkLayerInfo[j].outputDepth * sizeof(float));
+			memcpy(networkLayerInfo[j].flBiasData, net_ptr->layers[i].biases,  networkLayerInfo[j].outputDepth * sizeof(float));
+			for (int a = 0; a < networkLayerInfo[j].outputDepth; a++) {
+				if (networkLayerInfo[j].flBiasData[a] < layerPrecList[j].minBias ){
+					layerPrecList[j].minBias = networkLayerInfo[j].flBiasData[a];
+				}
+				if (networkLayerInfo[j].flBiasData[a] > layerPrecList[j].maxBias){
+					layerPrecList[j].maxBias = networkLayerInfo[j].flBiasData[a];
+				}
+				for (int b = 0; b < (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth); b++) {
+					if(index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b) < layerPrecList[j].minFilter){
+						layerPrecList[j].minFilter = index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b);
+					}
+					if(index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b) > layerPrecList[j].maxFilter){
+						layerPrecList[j].maxFilter = index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b);
+					}
+				}
+			}
+			if (networkLayerInfo[j].darknetNormScaleBias) {
+				for (int a = 0; a < networkLayerInfo[j].outputDepth; a++) {
+					networkLayerInfo[j].flBiasData[a] 
+						= ((-net_ptr->layers[i].rolling_mean[a] * net_ptr->layers[i].scales[a]) / sqrtf(net_ptr->layers[i].rolling_variance[a]))
+							+ (networkLayerInfo[j].flBeta * net_ptr->layers[i].scales[a]) + networkLayerInfo[j].flBiasData[a];
+					if (networkLayerInfo[j].flBiasData[a] < layerPrecList[j].minNormBias ) {
+						layerPrecList[j].minNormBias = networkLayerInfo[j].flBiasData[a] ;
+					}
+					if (networkLayerInfo[j].flBiasData[a] > layerPrecList[j].maxNormBias ){
+						layerPrecList[j].maxNormBias = networkLayerInfo[j].flBiasData[a] ;
+					}
+					for (int b = 0; b < (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth); b++) {
+						index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b)
+							= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b) 
+								* net_ptr->layers[i].scales[a])
+								/ sqrtf(net_ptr->layers[i].rolling_variance[a]);
+						if (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b) < layerPrecList[j].minNormFilter){
+							layerPrecList[j].minNormFilter = index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b);
+						}
+						if (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b) > layerPrecList[j].maxNormFilter){
+							layerPrecList[j].maxNormFilter = index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].flFilterData, a, b);
+						}
+					}
+				}	    
+			} else {
+				for (int a = 0; a < networkLayerInfo[j].outputDepth; a++) {
+					layerPrecList[j].minNormBias = layerPrecList[j].minBias;
+					layerPrecList[j].maxNormBias = layerPrecList[j].maxBias;
+					layerPrecList[j].minNormFilter = layerPrecList[j].minFilter;
+					layerPrecList[j].maxNormFilter = layerPrecList[j].maxFilter;
+				}
+			}
 			networkLayerInfo[j].fxFilterData = (fixedPoint_t*)malloc(networkLayerInfo[j].numFilterValues * sizeof(fixedPoint_t));
-			for(int a = 0; a < networkLayerInfo[j].numFilterValues; a++){
-				networkLayerInfo[j].fxFilterData[a] = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, net_ptr->layers[i].weights[a]);
+			for(int a = 0; a < networkLayerInfo[j].numFilterValues; a++) {
+				networkLayerInfo[j].fxFilterData[a] = fixedPoint::create(ESPRO_DEF_FXPT_LEN, ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[j].flFilterData[a]);
 			}
 			networkLayerInfo[j].fxBiasData = (fixedPoint_t*)malloc(networkLayerInfo[j].outputDepth * sizeof(fixedPoint_t));
 			for(int a = 0; a < networkLayerInfo[j].outputDepth; a++){
-				networkLayerInfo[j].fxBiasData[a] = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, net_ptr->layers[i].biases[a]);
-			}
-			if (networkLayerInfo[j].darknetNormScaleBias) {
-				fixedPoint_t flBeta = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[j].flBeta);
-				for (int a = 0; a < networkLayerInfo[j].outputDepth; a++) {
-					fixedPoint_t fxScale = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[j].flScaleBiasData[a]);
-					fixedPoint_t fxVariance = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, sqrt(networkLayerInfo[j].flVarianceData[a]));
-					fixedPoint_t fxMean = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[j].flMeanData[a]);
-					if (fxVariance == 0) {
-						networkLayerInfo[j].fxBiasData[a] 
-							= ((-fxMean * fxScale))
-								+ (flBeta * fxScale) + networkLayerInfo[j].fxBiasData[a];
-			
-					} else {
-						networkLayerInfo[j].fxBiasData[a] 
-							= ((-fxMean * fxScale) / fxVariance)
-								+ (flBeta * fxScale) + networkLayerInfo[j].fxBiasData[a];
-					}
-					for (int b = 0; b < (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth); b++) {
-						if (fxVariance == 0 && fxScale == 0) {
-							index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b)
-								= index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b);
-						} else if(fxVariance == 0 && fxScale != 0) {
-							index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b)
-								= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b) 
-									* fxScale);
-						} else if(fxVariance != 0 && fxScale == 0) {
-							index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b)
-								= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b) 
-									/ fxVariance);
-						} else {
-							index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b)
-								= (index2D(networkLayerInfo[j].outputDepth, (networkLayerInfo[j].numFilterValues / networkLayerInfo[j].outputDepth), networkLayerInfo[j].fxFilterData, a, b) 
-									* fxScale)
-									/ fxVariance;
-						}
-					}
-				}		    
-			}
-		}
+				networkLayerInfo[j].fxBiasData[a] = fixedPoint::create(ESPRO_DEF_FXPT_LEN, ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[j].flBiasData[a]);
+			} 
+		} 
 	    // END Code ---------------------------------------------------------------------------------------------------------------------------------
     }
 
 	
 	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------
 	// Set layer output and input layers ie bottom and top layers
-	for(uint32_t i = 1; i < networkLayerInfo.size(); i++) {
+	for(int i = 1; i < networkLayerInfo.size(); i++) {
 		if(networkLayerInfo[i].layerType != "Concat" && networkLayerInfo[i].layerType != "Residual") {
 			networkLayerInfo[i].bottomLayerNames.push_back(networkLayerInfo[i - 1].layerName);
 		} 
 	}	
-	for(uint32_t i = 1; i < networkLayerInfo.size(); i++) {
+	for(int i = 1; i < networkLayerInfo.size(); i++) {
 		networkLayerInfo[i].topLayerNames.push_back(networkLayerInfo[i].layerName);
 	}
 	// END Code -------------------------------------------------------------------------------------------------------------------------------------
 
 	
+	if (precision == espresso::FIXED) {
+		fd = fopen("parmRanges.txt", "w");
+		layerPrecList[0].dinFxPtLength = YOLO_DEF_FXPT_LEN;
+		layerPrecList[0].dinNumFracBits = YOLO_DEF_NUM_FRAC_BITS;
+		layerPrecList[0].doutFxPtLength = YOLO_DEF_FXPT_LEN;
+		layerPrecList[0].doutNumFracBits = YOLO_DEF_NUM_FRAC_BITS;
+		layerPrecList[0].dinNorm_0_1 = true;
+		networkLayerInfo[0].dinFxPtLength = layerPrecList[0].dinFxPtLength;
+		networkLayerInfo[0].dinNumFracBits = layerPrecList[0].dinNumFracBits;
+		networkLayerInfo[0].doutFxPtLength = layerPrecList[0].doutFxPtLength;
+		networkLayerInfo[0].doutNumFracBits = layerPrecList[0].doutNumFracBits;	
+		int maxtDoutIntBits = -INT_MAX;
+		for (int i = 1; i < networkLayerInfo.size(); i++) {
+		    layerPrecList[i].dinFxPtLength = layerPrecList[i - 1].doutFxPtLength;
+			layerPrecList[i].dinNumFracBits	= layerPrecList[i - 1].doutNumFracBits;
+			if (networkLayerInfo[i].layerType == "Convolution") {
+				float maxNormFilMag = fabs(layerPrecList[i].maxNormFilter);
+				float minNormFilMag = fabs(layerPrecList[i].minNormFilter);
+				int numIntBits0;
+				int numIntBits1;
+				int whtNumIntBits;
+				int doutNumIntBits;
+				int dinNumIntBits = layerPrecList[i].dinFxPtLength - layerPrecList[i].dinNumFracBits - 1;
+				if (maxNormFilMag >= 1 && minNormFilMag >= 1) {
+					numIntBits0 = max(int(ceilf(log2(maxNormFilMag))), 1);
+					numIntBits1 = max(int(ceilf(log2(minNormFilMag))), 1);
+					whtNumIntBits = max(numIntBits0, numIntBits1);
+					if (whtNumIntBits > YOLO_MAX_NUM_INT_BITS) {
+						exit(1);
+					}
+					doutNumIntBits = dinNumIntBits + whtNumIntBits;
+				} else if(maxNormFilMag < 1 && minNormFilMag >= 1) {
+					whtNumIntBits = max(int(ceilf(log2(minNormFilMag))), 1);
+					if (whtNumIntBits > YOLO_MAX_NUM_INT_BITS) {
+						exit(1);
+					}
+					doutNumIntBits = dinNumIntBits + whtNumIntBits;
+				} else if(maxNormFilMag >= 1 && minNormFilMag < 1) {
+					whtNumIntBits = max(int(ceilf(log2(maxNormFilMag))), 1);
+					if (whtNumIntBits > YOLO_MAX_NUM_INT_BITS) {
+						exit(1);
+					}
+					doutNumIntBits = dinNumIntBits + whtNumIntBits;
+				} else if(maxNormFilMag < 1 && minNormFilMag < 1) {
+					numIntBits0 = ceilf(log2(1.0f / maxNormFilMag));
+					numIntBits1 = ceilf(log2(1.0f / minNormFilMag));
+					whtNumIntBits = min(min(numIntBits0, numIntBits1), YOLO_MAX_NUM_FRAC_BITS);
+					doutNumIntBits = dinNumIntBits - whtNumIntBits;
+				}
+				if(layerPrecList[i - 1].dinNorm_0_1) {
+					doutNumIntBits = whtNumIntBits;
+				}
+				int doutNumFracBits = min(YOLO_DEF_FXPT_LEN - (doutNumIntBits + 1), YOLO_MAX_NUM_FRAC_BITS);
+				if (doutNumIntBits > maxtDoutIntBits) {
+					maxtDoutIntBits = doutNumIntBits;
+				}
+				layerPrecList[i].leakyFxPtLength = YOLO_DEF_FXPT_LEN;
+				layerPrecList[i].leakyNumFracBits = YOLO_DEF_NUM_FRAC_BITS;
+				layerPrecList[i].whtFxPtLength = YOLO_DEF_FXPT_LEN;
+				layerPrecList[i].whtNumFracBits = YOLO_DEF_FXPT_LEN - (whtNumIntBits + 1);
+				fixedPoint::SetParam(ESPRO_DEF_FXPT_LEN, ESPRO_DEF_NUM_FRAC_BITS, layerPrecList[i].whtFxPtLength, layerPrecList[i].whtNumFracBits, networkLayerInfo[i].fxFilterData, networkLayerInfo[i].numFilterValues);
+				layerPrecList[i].doutFxPtLength = YOLO_DEF_FXPT_LEN;
+				layerPrecList[i].doutNumFracBits = doutNumFracBits;
+				fprintf(fd, "%s\n",						 networkLayerInfo[i].layerName.c_str()	);
+				// fprintf(fd, "minBias				: %f\n", layerPrecList[i].minBias			);
+				// fprintf(fd, "maxBias				: %f\n", layerPrecList[i].maxBias			);
+				// fprintf(fd, "minFilter          : %f\n",	 layerPrecList[i].minFilter			);
+				// fprintf(fd, "maxFilter          : %f\n",	 layerPrecList[i].maxFilter			);
+				fprintf(fd, "minNormBias        : %f\n",	 layerPrecList[i].minNormBias		);
+				fprintf(fd, "maxNormBias        : %f\n",	 layerPrecList[i].maxNormBias		);
+				fprintf(fd, "minNormFilter      : %f\n",	 layerPrecList[i].minNormFilter		);
+				fprintf(fd, "maxNormFilter      : %f\n",	 layerPrecList[i].maxNormFilter		);
+				// fprintf(fd, "minScale           : %f\n",	 layerPrecList[i].minScale			);
+				// fprintf(fd, "maxScale           : %f\n",	 layerPrecList[i].maxScale			);
+				// fprintf(fd, "minMean            : %f\n",	 layerPrecList[i].minMean			);
+				// fprintf(fd, "maxMean            : %f\n",	 layerPrecList[i].maxMean			);
+				// fprintf(fd, "minSqrtVariance    : %f\n",	 layerPrecList[i].minSqrtVariance	);
+				// fprintf(fd, "maxSqrtVariance    : %f\n",	 layerPrecList[i].maxSqrtVariance	);
+				fprintf(fd, "\n");	
+			} else {
+				layerPrecList[i].doutFxPtLength	= layerPrecList[i].dinFxPtLength;
+				layerPrecList[i].doutNumFracBits = layerPrecList[i].dinNumFracBits;
+			}
+			networkLayerInfo[i].dinFxPtLength = layerPrecList[i].dinFxPtLength;
+			networkLayerInfo[i].dinNumFracBits = layerPrecList[i].dinNumFracBits;
+			networkLayerInfo[i].leakyFxPtLength = layerPrecList[i].leakyFxPtLength;
+			networkLayerInfo[i].leakyNumFracBits = layerPrecList[i].leakyNumFracBits;
+			networkLayerInfo[i].whtFxPtLength = layerPrecList[i].whtFxPtLength;
+			networkLayerInfo[i].whtNumFracBits = layerPrecList[i].whtNumFracBits;
+			networkLayerInfo[i].biasFxPtLength = layerPrecList[i].biasFxPtLength;
+			networkLayerInfo[i].biasNumFracBits = layerPrecList[i].biasNumFracBits;					
+			networkLayerInfo[i].doutFxPtLength = layerPrecList[i].doutFxPtLength;
+			networkLayerInfo[i].doutNumFracBits = layerPrecList[i].doutNumFracBits;
+		}
+		fclose(fd);
+		networkLayerInfo[1].dinFxPtLength = networkLayerInfo[0].dinFxPtLength;
+		networkLayerInfo[1].dinNumFracBits = networkLayerInfo[0].dinNumFracBits;	
+		networkLayerInfo[1].doutFxPtLength = YOLO_DEF_FXPT_LEN;
+		networkLayerInfo[1].doutNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);
+		// assuming bias rep will never be larger than product of wht and din rep
+		int resFxPtLength  = networkLayerInfo[1].dinFxPtLength + networkLayerInfo[1].whtFxPtLength;
+		int resNumFracBits = networkLayerInfo[1].dinNumFracBits + networkLayerInfo[1].whtNumFracBits;				
+		networkLayerInfo[1].biasFxPtLength = resFxPtLength;
+		networkLayerInfo[1].biasNumFracBits = resNumFracBits;
+		fixedPoint::SetParam(ESPRO_DEF_FXPT_LEN, ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[1].biasFxPtLength, networkLayerInfo[1].biasNumFracBits, networkLayerInfo[1].fxBiasData, networkLayerInfo[1].outputDepth);
+		for (int i = 2; i < networkLayerInfo.size(); i++) {
+			if (networkLayerInfo[i].layerType == "Convolution") {
+				networkLayerInfo[i].dinFxPtLength = YOLO_DEF_FXPT_LEN;
+				networkLayerInfo[i].dinNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);			
+				networkLayerInfo[i].doutFxPtLength = YOLO_DEF_FXPT_LEN;
+				networkLayerInfo[i].doutNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);
+				// assuming bias rep will never be larger than product of wht and din rep
+				int resFxPtLength  = networkLayerInfo[i].dinFxPtLength + networkLayerInfo[i].whtFxPtLength;
+				int resNumFracBits = networkLayerInfo[i].dinNumFracBits + networkLayerInfo[i].whtNumFracBits;				
+				networkLayerInfo[i].biasFxPtLength = resFxPtLength;
+				networkLayerInfo[i].biasNumFracBits = resNumFracBits;
+				fixedPoint::SetParam(ESPRO_DEF_FXPT_LEN, ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[i].biasFxPtLength, networkLayerInfo[i].biasNumFracBits, networkLayerInfo[i].fxBiasData, networkLayerInfo[i].outputDepth);
+			}
+		}
+	}
+	
 	// Clean up
-	// free(net_ptr)
+	// free(net)
 }
 
 
 int main(int argc, char **argv) {
-	
-
-	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------	
+	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------		
 	espresso::precision_t precision = espresso::FIXED;
 	network *yolo_net = NULL;
+	FILE *fd = NULL;
 	vector<espresso::layerInfo_t> networkLayerInfo;
 	darknetDataTransform(&yolo_net, networkLayerInfo, precision, "/home/ikenna/IkennaWorkSpace/darknet/cfg/yolov3.cfg", "/home/ikenna/IkennaWorkSpace/darknet/cfg/yolov3.weights");
 	vector<int> outputLayers;
@@ -259,9 +463,9 @@ int main(int argc, char **argv) {
 
 	
 	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------		
-	image im = load_image_color("/home/ikenna/IkennaWorkSpace/darknet/data/dog.jpg", 0, 0);
+    image im = load_image_color("/home/ikenna/IkennaWorkSpace/darknet/data/dog.jpg", 0, 0);
+	// image im = load_image_color(argv[1], 0, 0);
 	image sized = letterbox_image(im, networkLayerInfo[0].numInputRows, networkLayerInfo[0].numInputCols);
-	FILE *fd;
 	// fd = fopen("input.txt", "w");
 	// for (int i = 0; i < networkLayerInfo[0].inputDepth; i++) {
 	// 	for (int j = 0; j < networkLayerInfo[0].numInputRows; j++) {
@@ -278,7 +482,7 @@ int main(int argc, char **argv) {
 	} else {
 		net->m_cnn[0]->m_blob.fxData = (fixedPoint_t*)malloc((networkLayerInfo[0].numInputRows * networkLayerInfo[0].numInputCols * networkLayerInfo[0].inputDepth) * sizeof(fixedPoint_t));
 		for(int i = 0; i < (networkLayerInfo[0].numInputRows * networkLayerInfo[0].numInputCols * networkLayerInfo[0].inputDepth); i++) {
-			net->m_cnn[0]->m_blob.fxData[i] = fixedPoint::create(ESPRO_DEF_NUM_FRAC_BITS, sized.data[i]);
+			net->m_cnn[0]->m_blob.fxData[i] = fixedPoint::create(networkLayerInfo[0].dinFxPtLength, networkLayerInfo[0].dinNumFracBits, sized.data[i]);
 		}
 	}
 	// END Code -------------------------------------------------------------------------------------------------------------------------------------
@@ -287,28 +491,29 @@ int main(int argc, char **argv) {
 	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------		
 	string beginLayerName = "0_Data";
 	string endLayerName = "107_YOLO";
+	// string endLayerName = "2_Convolution";
 	int eIdx = net->ReturnLayerIdx(endLayerName);
 	net->Forward(beginLayerName, endLayerName);
-	// fd = fopen("output.txt", "w");
-	// for (int i = 0; i < net->m_cnn[eIdx]->m_blob.depth; i++) {
-	// 	for (int j = 0; j < net->m_cnn[eIdx]->m_blob.numRows; j++) {
-	// 		for (int k = 0; k < net->m_cnn[eIdx]->m_blob.numCols; k++) {
-	// 			if (net->m_cnn[eIdx]->m_precision == espresso::FLOAT) {
-	// 				fprintf(fd, "%f ", index3D(net->m_cnn[eIdx]->m_blob.depth, net->m_cnn[eIdx]->m_blob.numRows, net->m_cnn[eIdx]->m_blob.numCols, net->m_cnn[eIdx]->m_blob.flData, i, j, k));
-	// 			} else {
-	// 				fprintf(fd, "%f ", fixedPoint::toFloat(net->m_cnn[eIdx]->m_doutNumFracBits, index3D(net->m_cnn[eIdx]->m_blob.depth, net->m_cnn[eIdx]->m_blob.numRows, net->m_cnn[eIdx]->m_blob.numCols, net->m_cnn[eIdx]->m_blob.fxData, i, j, k)));
-	// 			}
-	// 		}
-	// 		fprintf(fd, "\n");
-	// 	}
-	// 	fprintf(fd, "\n\n\n");
-	// }
-	// fclose(fd);
+	fd = fopen(("output_" + to_string(107) + ".txt").c_str(), "w");
+	for (int i = 0; i < net->m_cnn[eIdx]->m_blob.depth; i++) {
+		for (int j = 0; j < net->m_cnn[eIdx]->m_blob.numRows; j++) {
+			for (int k = 0; k < net->m_cnn[eIdx]->m_blob.numCols; k++) {
+				if (net->m_cnn[eIdx]->m_precision == espresso::FLOAT) {
+					fprintf(fd, "%f ", index3D(net->m_cnn[eIdx]->m_blob.depth, net->m_cnn[eIdx]->m_blob.numRows, net->m_cnn[eIdx]->m_blob.numCols, net->m_cnn[eIdx]->m_blob.flData, i, j, k));
+				} else {
+					fprintf(fd, "%f ", fixedPoint::toFloat(net->m_cnn[eIdx]->m_doutNumFracBits, index3D(net->m_cnn[eIdx]->m_blob.depth, net->m_cnn[eIdx]->m_blob.numRows, net->m_cnn[eIdx]->m_blob.numCols, net->m_cnn[eIdx]->m_blob.fxData, i, j, k)));
+				}
+			}
+			fprintf(fd, "\n");
+		}
+		fprintf(fd, "\n\n\n");
+	}
+	fclose(fd);
 	// END Code -------------------------------------------------------------------------------------------------------------------------------------
 
 
 	// BEGIN Code -----------------------------------------------------------------------------------------------------------------------------------
-	for(uint32_t i = 0; i < net->m_cnn.size(); i++){
+	for(int i = 0; i < net->m_cnn.size(); i++){
         if(net->m_cnn[i]->m_layerType == "YOLO") {
 	        layer *l = &yolo_net->layers[i - 1];
 	        l->output = (float*)net->m_cnn[i]->m_blob.flData;
@@ -321,7 +526,8 @@ int main(int argc, char **argv) {
 	detection *dets = get_network_boxes(yolo_net, im.w, im.h, THRESH, HIER_THRESH, 0, 1, &nboxes);
 	if(NMS) do_nms_sort(dets, nboxes, l.classes, NMS);
     draw_detections(im, dets, nboxes, 0.5f, names, alphabet, l.classes);
-    save_image(im, "predictions");
+    /// save_image(im, argv[2]);
+	save_image(im, "predictions");
 	free_detections(dets, nboxes);
     free_image(im);
     free_image(sized);
