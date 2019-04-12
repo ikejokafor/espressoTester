@@ -414,28 +414,28 @@ void darknetDataTransform(network **net, vector<espresso::layerInfo_t> &networkL
 			networkLayerInfo[i].doutNumFracBits = layerPrecList[i].doutNumFracBits;
 		}
 		fclose(fd);
-		networkLayerInfo[1].dinFxPtLength = networkLayerInfo[0].dinFxPtLength;
-		networkLayerInfo[1].dinNumFracBits = networkLayerInfo[0].dinNumFracBits;	
-		networkLayerInfo[1].doutFxPtLength = YOLO_DEF_FXPT_LEN;
-		networkLayerInfo[1].doutNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);
+		networkLayerInfo[1].dinFxPtLength = networkLayerInfo[0].doutFxPtLength;
+		networkLayerInfo[1].dinNumFracBits = networkLayerInfo[0].doutNumFracBits;
 		// assuming bias rep will never be larger than product of wht and din rep
 		int resFxPtLength  = networkLayerInfo[1].dinFxPtLength + networkLayerInfo[1].whtFxPtLength;
 		int resNumFracBits = networkLayerInfo[1].dinNumFracBits + networkLayerInfo[1].whtNumFracBits;				
 		networkLayerInfo[1].biasFxPtLength = resFxPtLength;
-		networkLayerInfo[1].biasNumFracBits = resNumFracBits;
-		fixedPoint::SetParam(ESPRO_DEF_FXPT_LEN, ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[1].biasFxPtLength, networkLayerInfo[1].biasNumFracBits, networkLayerInfo[1].fxBiasData, networkLayerInfo[1].outputDepth);
+		networkLayerInfo[1].biasNumFracBits = resNumFracBits; 
+		fixedPoint::SetParam(ESPRO_DEF_FXPT_LEN, ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[1].biasFxPtLength, networkLayerInfo[1].biasNumFracBits, networkLayerInfo[1].fxBiasData, networkLayerInfo[1].outputDepth);        
+		networkLayerInfo[1].doutFxPtLength = YOLO_DEF_FXPT_LEN;
+		networkLayerInfo[1].doutNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);
 		for (int i = 2; i < networkLayerInfo.size(); i++) {
 			if (networkLayerInfo[i].layerType == "Convolution") {
 				networkLayerInfo[i].dinFxPtLength = YOLO_DEF_FXPT_LEN;
-				networkLayerInfo[i].dinNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);			
-				networkLayerInfo[i].doutFxPtLength = YOLO_DEF_FXPT_LEN;
-				networkLayerInfo[i].doutNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);
-				// assuming bias rep will never be larger than product of wht and din rep
+				networkLayerInfo[i].dinNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);
+                // assuming bias rep will never be larger than product of wht and din rep
 				int resFxPtLength  = networkLayerInfo[i].dinFxPtLength + networkLayerInfo[i].whtFxPtLength;
 				int resNumFracBits = networkLayerInfo[i].dinNumFracBits + networkLayerInfo[i].whtNumFracBits;				
 				networkLayerInfo[i].biasFxPtLength = resFxPtLength;
 				networkLayerInfo[i].biasNumFracBits = resNumFracBits;
 				fixedPoint::SetParam(ESPRO_DEF_FXPT_LEN, ESPRO_DEF_NUM_FRAC_BITS, networkLayerInfo[i].biasFxPtLength, networkLayerInfo[i].biasNumFracBits, networkLayerInfo[i].fxBiasData, networkLayerInfo[i].outputDepth);
+				networkLayerInfo[i].doutFxPtLength = YOLO_DEF_FXPT_LEN;
+				networkLayerInfo[i].doutNumFracBits = YOLO_DEF_FXPT_LEN - (maxtDoutIntBits + 1);
 			}
 		}
 	}
