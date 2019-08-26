@@ -69,9 +69,9 @@ FILE(GLOB TARGET_SRCS
 
 # BEGIN Target Headers ------------------------------------------------------------------------------------------------------------------------------
 FILE(GLOB TARGET_HEADERS
-    ${PROJECT_SOURCE_DIR}/inc/*.h 
-    ${PROJECT_SOURCE_DIR}/inc/*.hpp
-    ${PROJECT_SOURCE_DIR}/inc/*.cuh
+    ${PROJECT_SOURCE_DIR}/include/*.h 
+    ${PROJECT_SOURCE_DIR}/include/*.hpp
+    ${PROJECT_SOURCE_DIR}/include/*.cuh
 )
 # END Target Sources --------------------------------------------------------------------------------------------------------------------------------
 
@@ -98,10 +98,11 @@ SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
 
 # BEGIN Build dependencies --------------------------------------------------------------------------------------------------------------------------
 ADD_DEPENDENCIES(${TARGET_NAME} espresso)
-#ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
-ADD_DEPENDENCIES(${TARGET_NAME} fixedPoint)
-ADD_DEPENDENCIES(${TARGET_NAME} darknet_arcv)
-#ADD_DEPENDENCIES(${TARGET_NAME} caffeClassifier)
+# ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
+# ADD_DEPENDENCIES(${TARGET_NAME} fixedPoint)
+# ADD_DEPENDENCIES(${TARGET_NAME} darknet_arcv)
+# ADD_DEPENDENCIES(${TARGET_NAME} util)
+# ADD_DEPENDENCIES(${TARGET_NAME} caffeClassifier)
 #add_dependencies(${TARGET_NAME} RL)
 # END Build dependencies ----------------------------------------------------------------------------------------------------------------------------
 
@@ -126,13 +127,14 @@ TARGET_COMPILE_OPTIONS(${TARGET_NAME} PUBLIC
 
 # BEGIN Include directories -------------------------------------------------------------------------------------------------------------------------
 TARGET_INCLUDE_DIRECTORIES(${TARGET_NAME} PUBLIC
-    ${PROJECT_SOURCE_DIR}/inc/
+    ${PROJECT_SOURCE_DIR}/include/
     ${PROJECT_SOURCE_DIR}/../caffeDataParser/inc/
     ${PROJECT_SOURCE_DIR}/../espresso/inc/
     ${PROJECT_SOURCE_DIR}/../fixedPoint/inc/
     ${PROJECT_SOURCE_DIR}/../caffeClassifier/inc/
 	${PROJECT_SOURCE_DIR}/../darknet/include/
 	${PROJECT_SOURCE_DIR}/../darknet/src/
+	${PROJECT_SOURCE_DIR}/../util/inc/
 )
 # END Include directories ---------------------------------------------------------------------------------------------------------------------------
 
@@ -150,7 +152,10 @@ else()
     TARGET_LINK_LIBRARIES(${TARGET_NAME} PUBLIC
         -L/usr/local/lib
         -L/usr/lib/
-		-L/home/ikenna/IkennaWorkSpace/darknet/build
+		-L/home/ikenna/IkennaWorkSpace/darknet/build/
+		-L${PROJECT_SOURCE_DIR}/../util/build
+		-L${PROJECT_SOURCE_DIR}/../fixedPoint/build
+		-L${PROJECT_SOURCE_DIR}/../espresso/build
 		#-lcaffe
         #-lprotobuf
         -lopencv_core
@@ -160,9 +165,9 @@ else()
 		-lpthread
 		#caffeClassifier
         #caffeDataParser
-        espresso
-        fixedPoint
-		util
+		-lutil
+        -lespresso
+        -lfixedPoint
         #RL
 )
 endif()

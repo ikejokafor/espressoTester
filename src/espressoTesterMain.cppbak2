@@ -1,0 +1,401 @@
+// Definitions
+#define THRESH						0.5f
+#define HIER_THRESH					0.5f
+#define NMS							0.45f
+#define YOLO_DEF_FXPT_LEN			16
+#define YOLO_DEF_NUM_FRAC_BITS		14
+#define YOLO_MAX_NUM_INT_BITS		(YOLO_DEF_FXPT_LEN - 1)
+#define YOLO_MAX_NUM_FRAC_BITS      (YOLO_DEF_FXPT_LEN - 2)
+
+
+// System includes
+#include <iomanip>
+#include <fstream>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+using namespace std;
+
+
+// Project includes
+#include "Network.hpp"
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   function name
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------
+void setLayerOutput(vector<espresso::layerInfo_t> &networkLayerInfoArr)
+{
+	for (int i = 1; i < networkLayerInfoArr.size(); i++) 
+	{
+		if (networkLayerInfoArr[i].layerType != "Concat" && networkLayerInfoArr[i].layerType != "Residual") 
+		{
+			networkLayerInfoArr[i].bottomLayerNames.push_back(networkLayerInfoArr[i - 1].layerName);
+		} 
+	}	
+	for (int i = 1; i < networkLayerInfoArr.size(); i++) 
+	{
+		networkLayerInfoArr[i].topLayerNames.push_back(networkLayerInfoArr[i].layerName);
+	}
+}
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   function name
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------
+void setKrnlGrpData(espresso::layerInfo_t &networkLayerInfo, int numKernels)
+{
+	int numKernelGroups = networkLayerInfo.kernel_group_arr.size();
+	for (int i = 0; i < numKernelGroups; i++) 
+	{	
+		int numKrnlInGrp = networkLayerInfo.kernel_group_arr[i]->get_num_kernels();
+		kernel_group *kernel_group_i = networkLayerInfo.kernel_group_arr[i];
+		int krnl_idx = 0;
+		for (int j = 0; j < numKrnlInGrp; j++) 
+		{
+			kernel *kernel_i = kernel_group_i->get_kernel(j);
+			int channels = kernel_i->get_length(0);
+			for (int a = 0; a < channels; a++)
+			{
+				int height = kernel_i->get_length(1);
+				for (int b = 0; b < height; b++)
+				{
+					int width = kernel_i->get_length(2);
+					for (int  c = 0; c < width; c++)
+					{
+						int idx = index4D_f(
+							channels, 
+							height, 
+							width,
+							krnl_idx,
+							a,
+							b,
+							c
+						);
+						fixedPoint_t value = networkLayerInfo.fxFilterData[idx];
+						kernel_i->set_weight(a, b, c, value);
+					}
+				}
+			}
+		}
+		krnl_idx++;
+	}
+}
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   function name
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------
+vector<kernel_group*> createKernelGroupArr(int numKernels, int height, int width, int channels) 
+{
+	vector<kernel_group*> kernel_group_arr;
+	int numKernelGroups = ceil(float(numKernels) / float(ACCEL_MAX_NUM_KRNL));
+	kernel_group_arr.resize(numKernelGroups);	
+	int kernel_rem = numKernels;
+	for(int i = 0; i < numKernelGroups; i++) 
+	{	
+		kernel_group_arr[i] = new kernel_group(height, width, channels);
+		int numKrnlInGrp = min(ACCEL_MAX_NUM_KRNL, kernel_rem);
+		for (int j = 0; j < numKrnlInGrp; j++) 
+		{
+			kernel_group_arr[i]->add_kernel(new kernel(
+				height, 
+				width, 
+				channels
+			));
+		}
+		kernel_rem -= ACCEL_MAX_NUM_KRNL;
+	}
+	return kernel_group_arr;
+}
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   function name
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------
+void getFxPtWeights(espresso::layerInfo_t &networkLayerInfo) 
+{
+	networkLayerInfo.fxFilterData = new fixedPoint_t[networkLayerInfo.numFilterValues];
+	fixedPoint_t *fxFilterData = networkLayerInfo.fxFilterData;
+	for(int k = 0; k < networkLayerInfo.numFilterValues; k++)
+	{
+		fxFilterData[k] = fixedPoint::create(
+			ESPRO_DEF_FXPT_LEN, 
+			ESPRO_DEF_NUM_FRAC_BITS, 
+			networkLayerInfo.flFilterData[k]);
+	}
+	networkLayerInfo.fxBiasData = (fixedPoint_t*)malloc(networkLayerInfo.outputDepth * sizeof(fixedPoint_t));
+	fixedPoint_t *fxBiasData = networkLayerInfo.fxBiasData;
+	for(int k = 0; k < networkLayerInfo.outputDepth; k++) 
+	{
+		fxBiasData[k] = fixedPoint::create(
+			ESPRO_DEF_FXPT_LEN, 
+			ESPRO_DEF_NUM_FRAC_BITS, 
+			networkLayerInfo.flBiasData[k]);
+	}
+	int kernelDepth = networkLayerInfo.inputDepth;
+	int numKernels = networkLayerInfo.outputDepth;
+	int kernelWidth = networkLayerInfo.numKernelCols;
+	int kernelHeight = networkLayerInfo.numKernelRows;
+	networkLayerInfo.kernel_group_arr = createKernelGroupArr(
+		numKernels, 
+		kernelHeight, 
+		kernelWidth, 
+		kernelDepth
+	);
+	setKrnlGrpData(networkLayerInfo, numKernels);
+}
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   function name
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------
+void getFlPtWeights(layer *layer_i, espresso::layerInfo_t &networkLayerInfo) 
+{
+	networkLayerInfo.flFilterData = new float[networkLayerInfo.numFilterValues];
+	memcpy(
+		networkLayerInfo.flFilterData, 
+		layer_i->weights, 
+		networkLayerInfo.numFilterValues * sizeof(float)
+	);
+	networkLayerInfo.flBiasData = new float[networkLayerInfo.outputDepth];
+	memcpy(
+		networkLayerInfo.flBiasData, 
+		layer_i->biases, 
+		networkLayerInfo.outputDepth * sizeof(float)
+	);
+	if (networkLayerInfo.darknetNormScaleBias) 
+	{
+		int outputDepth = networkLayerInfo.outputDepth;
+		int numFilValPerMap = networkLayerInfo.numFilterValues / networkLayerInfo.outputDepth;
+		float *flFilterData_ptr = networkLayerInfo.flFilterData;
+		for (int a = 0; a < outputDepth; a++) 
+		{
+			float rolling_mean = layer_i->rolling_mean[a];
+			float scales = layer_i->scales[a];
+			float rolling_variance = layer_i->rolling_variance[a];
+			float flBeta = networkLayerInfo.flBeta;
+			float flBiasData_v = flFilterData_ptr[a];
+			networkLayerInfo.flBiasData[a] = ((-rolling_mean * scales) / sqrtf(rolling_variance)) + (flBeta * scales) + flBiasData_v;
+			for (int b = 0; b < numFilValPerMap; b++) 
+			{
+				int idx = index2D_f(numFilValPerMap, a, b);
+				flFilterData_ptr[idx] = flFilterData_ptr[idx] * scales/ sqrtf(rolling_variance);
+			}
+		}	    
+	}
+}
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   function name
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------
+void getWeights(espresso::precision_t precision, layer *layer_i, espresso::layerInfo_t &networkLayerInfo)
+{
+	getFlPtWeights(layer_i, networkLayerInfo);
+	if(precision == espresso::FIXED)
+	{
+		getFxPtWeights(networkLayerInfo);
+	}
+}
+
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   setBaseLayerInfo
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------
+void setBaseLayerInfo(layer *layer_i, espresso::layerInfo_t &networkLayerInfo, espresso::precision_t precision)
+{
+	networkLayerInfo.numInputRows = layer_i->h;
+	networkLayerInfo.numInputCols = layer_i->w;
+	networkLayerInfo.inputDepth = layer_i->c;
+	networkLayerInfo.outputDepth = layer_i->n;
+	networkLayerInfo.numKernelRows = layer_i->size;
+	networkLayerInfo.numKernelCols = layer_i->size;
+	networkLayerInfo.stride = layer_i->stride;
+	networkLayerInfo.padding = layer_i->pad;	    
+	networkLayerInfo.numFilterValues = layer_i->nweights;
+	networkLayerInfo.group = layer_i->groups;
+	networkLayerInfo.precision = precision;
+}
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   function name
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------	
+void createDataLayer(network *net, vector<espresso::layerInfo_t> &networkLayerInfoArr, espresso::precision_t precision)
+{
+	networkLayerInfoArr[0] = espresso::layerInfo_t();
+	networkLayerInfoArr[0].precision = precision;
+	networkLayerInfoArr[0].layerType = "Input";
+	networkLayerInfoArr[0].layerName = "0_Data";
+	networkLayerInfoArr[0].inputDepth = net->layers[0].c;
+	networkLayerInfoArr[0].numInputRows = net->layers[0].h;
+	networkLayerInfoArr[0].numInputCols = net->layers[0].w;	
+}
+
+
+// ------------------------------------------------------------------------------------------------
+//
+//      Function        :   function name
+//      Description     :   function description
+//      Parameters      :   param0 - param0 description
+//                          param1 - param1 description  
+//      Return Value    :   0 success, 1 failure
+//
+// ------------------------------------------------------------------------------------------------
+void darknetDataTransform(network **net, vector<espresso::layerInfo_t> &networkLayerInfoArr, espresso::precision_t precision, string configFileName, string weightFileName)
+{
+	*net = parse_network_cfg((char*)&configFileName[0]);
+	network *net_ptr = *net;
+	load_weights(net_ptr, (char*)&weightFileName[0]);
+	int numLayers = net_ptr->n + 1;
+	networkLayerInfoArr.resize(numLayers);
+	int j = 0;
+	createDataLayer(net_ptr, networkLayerInfoArr, precision);
+	for(int i = 1; i < numLayers; i++) 
+	{
+		networkLayerInfoArr[i] = espresso::layerInfo_t();
+		switch (net_ptr->layers[j].type)
+		{
+			case CONVOLUTIONAL:
+			{
+				networkLayerInfoArr[i].layerType = "Convolution";
+				networkLayerInfoArr[i].layerName = to_string(i) + "_" + networkLayerInfoArr[i].layerType;
+				setBaseLayerInfo(&net_ptr->layers[j], networkLayerInfoArr[i], precision);
+				if (net_ptr->layers[j].batch_normalize) 
+				{			    
+					networkLayerInfoArr[i].flBeta = 0.000001f;
+					networkLayerInfoArr[i].darknetNormScaleBias = true;
+				}
+				if (net_ptr->layers[j].activation == LEAKY) 
+				{
+					networkLayerInfoArr[i].activation = espresso::LEAKY;
+				}
+				else if (net_ptr->layers[j].activation == LINEAR) 
+				{
+					networkLayerInfoArr[i].activation = espresso::LINEAR;
+				}
+				networkLayerInfoArr[i].darknetAct = true;
+				getWeights(precision, &net_ptr->layers[j], networkLayerInfoArr[i]);
+				break;
+			} 
+			case MAXPOOL:
+			{
+				networkLayerInfoArr[i].layerType = "Pooling_MAX";
+				networkLayerInfoArr[i].layerName = to_string(i) + "_" + networkLayerInfoArr[i].layerType;
+				setBaseLayerInfo(&net_ptr->layers[j], networkLayerInfoArr[i], precision);
+				break;
+			} 
+			case AVGPOOL:
+			{
+				networkLayerInfoArr[i].layerType = "Pooling_AVG";
+				networkLayerInfoArr[i].layerName = to_string(i) + "_" + networkLayerInfoArr[i].layerType;
+				setBaseLayerInfo(&net_ptr->layers[j], networkLayerInfoArr[i], precision);
+				break;
+			} 
+			case ROUTE:
+			{
+				networkLayerInfoArr[i].layerType = "Concat";
+				networkLayerInfoArr[i].layerName = to_string(i) + "_" + networkLayerInfoArr[i].layerType;
+				setBaseLayerInfo(&net_ptr->layers[j], networkLayerInfoArr[i], precision);
+				for (int k = 0; k < net_ptr->layers[j].n; k++) 
+				{
+					networkLayerInfoArr[i].bottomLayerNames.push_back(networkLayerInfoArr[net_ptr->layers[j].input_layers[k] + 1].layerName);
+				}
+				break;
+			} 
+			case SHORTCUT:
+			{
+				networkLayerInfoArr[i].layerType = "Residual";
+				networkLayerInfoArr[i].layerName = to_string(i) + "_" + networkLayerInfoArr[i].layerType;
+				setBaseLayerInfo(&net_ptr->layers[j], networkLayerInfoArr[i], precision);
+				networkLayerInfoArr[i].bottomLayerNames.push_back(networkLayerInfoArr[i - 1].layerName);
+				networkLayerInfoArr[i].bottomLayerNames.push_back(networkLayerInfoArr[net_ptr->layers[j].index + 1].layerName);
+				break;
+			} 
+			case YOLO:
+			{
+				networkLayerInfoArr[i].layerType = "YOLO";
+				networkLayerInfoArr[i].layerName = to_string(i) + "_" + networkLayerInfoArr[i].layerType;
+				setBaseLayerInfo(&net_ptr->layers[j], networkLayerInfoArr[i], precision);
+				networkLayerInfoArr[i].darknet_n_param = net_ptr->layers[j].n;
+				networkLayerInfoArr[i].darknet_classes_param = net_ptr->layers[j].classes;
+				networkLayerInfoArr[i].darknet_outputs_param = net_ptr->layers[j].outputs;
+				break;
+			} 
+			case UPSAMPLE:
+			{
+				networkLayerInfoArr[i].layerType = "UpSample";
+				networkLayerInfoArr[i].layerName = to_string(i) + "_" + networkLayerInfoArr[i].layerType;
+				setBaseLayerInfo(&net_ptr->layers[j], networkLayerInfoArr[i], precision);
+				break;
+			}
+			default:
+			{
+				cout << "Skipped Darknet Layer " << i << endl;
+				continue;
+			}
+		}
+		j++;
+	}
+	setLayerOutput(networkLayerInfoArr);
+}
+
+
+int main(int argc, char **argv) 
+{
+	espresso::precision_t precision = espresso::FIXED;
+	network *yolo_net = NULL;
+	vector<espresso::layerInfo_t> networkLayerInfoArr;
+	darknetDataTransform(&yolo_net, networkLayerInfoArr, precision, "/home/ikenna/IkennaWorkSpace/darknet/cfg/yolov3.cfg", "/home/ikenna/IkennaWorkSpace/darknet/cfg/yolov3.weights");
+	kernel_group_config *kgc = networkLayerInfoArr[1].kernel_group_arr[0]->get_config();
+    return 0;
+}
