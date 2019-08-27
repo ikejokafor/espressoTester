@@ -349,14 +349,14 @@ void getLayerStats(const std::vector<espresso::layerInfo_obj>& networkLayerInfoA
         {
             layerPrecArr[i].minBias = std::min(
                 layerPrecArr[i].minBias,
-                networkLayerInfoArr[i].flBiasData[j]
+                networkLayerInfoArr[i].flFilterData[j]
             );
         }
         for(int j = 0; j < networkLayerInfoArr[i].numFilterValues; j++)
         {
             layerPrecArr[i].maxBias = std::max(
                 layerPrecArr[i].maxBias,
-                networkLayerInfoArr[i].flBiasData[j]
+                networkLayerInfoArr[i].flFilterData[j]
             );
         }
 	}   
