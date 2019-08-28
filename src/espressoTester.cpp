@@ -101,7 +101,6 @@ std::vector<espresso::layerInfo_obj> darknetDataTransform(
 	createDataLayer(networkLayerInfoArr[0], net_ptr, precision);
 	for (int i = 1; i < numLayers; i++) 
 	{
-		networkLayerInfoArr[i] = espresso::layerInfo_obj();
 		switch (net_ptr->layers[j].type)
 		{
 			case CONVOLUTIONAL:
@@ -176,6 +175,7 @@ std::vector<espresso::layerInfo_obj> darknetDataTransform(
 		j++;
 	}
 	setLayerConnections(networkLayerInfoArr);
+	return networkLayerInfoArr;
 }
 
 
@@ -241,15 +241,11 @@ void getFxPtWeights(espresso::layerInfo_obj& networkLayerInfo)
 }
 
 
-void getLayerPrec(std::vector<layerPrec_obj> layerPrecArr)
+void getLayerPrec(std::vector<layerPrec_t>& layerPrecArr)
 {
-    layerPrecArr[0].dinFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
-    layerPrecArr[0].dinNumFracBits = espresso::YOLO_DEF_NUM_FRAC_BITS;
-    layerPrecArr[0].doutFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
-    layerPrecArr[0].doutNumFracBits = espresso::YOLO_DEF_NUM_FRAC_BITS;
     layerPrecArr[0].dinNorm = true;	
 	int maxtDoutIntBits = -INT_MAX;
-    for(int i = 0; i < layerPrecArr.size(); i++)
+    for(int i = 1; i < layerPrecArr.size(); i++)
     {
 	    layerPrecArr[i].dinFxPtLength = layerPrecArr[i - 1].doutFxPtLength;
 	    layerPrecArr[i].dinNumFracBits	= layerPrecArr[i - 1].doutNumFracBits;
@@ -325,42 +321,38 @@ void getLayerPrec(std::vector<layerPrec_obj> layerPrecArr)
 }
 
 
-void getLayerStats(const std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std::vector<layerPrec_obj> layerPrecArr)
+void getLayerStats(const std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std::vector<layerPrec_t>& layerPrecArr)
 {
  	for(int i = 0; i < networkLayerInfoArr.size(); i++)
 	{
-		layerPrecArr[i].layerType = networkLayerInfoArr[i].layerType;
-        int numBias = networkLayerInfoArr[i].outputDepth;
-        for(int j = 0; j < numBias; j++)
-        {
-            layerPrecArr[i].minBias = std::min(
-                layerPrecArr[i].minBias,
-                networkLayerInfoArr[i].flBiasData[j]
-            );
-        }
-        for(int j = 0; j < numBias; j++)
-        {
-            layerPrecArr[i].maxBias = std::max(
-                layerPrecArr[i].maxBias,
-                networkLayerInfoArr[i].flBiasData[j]
-            );
-        }
-        for(int j = 0; j < networkLayerInfoArr[i].numFilterValues; j++)
-        {
-            layerPrecArr[i].minBias = std::min(
-                layerPrecArr[i].minBias,
-                networkLayerInfoArr[i].flFilterData[j]
-            );
-        }
-        for(int j = 0; j < networkLayerInfoArr[i].numFilterValues; j++)
-        {
-            layerPrecArr[i].maxBias = std::max(
-                layerPrecArr[i].maxBias,
-                networkLayerInfoArr[i].flFilterData[j]
-            );
-        }
-	}   
-    
+		if (layerPrecArr[i].layerType == espresso::CONVOLUTION)
+		{
+			int numBias = networkLayerInfoArr[i].outputDepth;
+			for (int j = 0; j < numBias; j++)
+			{
+				layerPrecArr[i].minBias = std::min(
+				    layerPrecArr[i].minBias,
+					networkLayerInfoArr[i].flBiasData[j]
+				);
+				layerPrecArr[i].maxBias = std::max(
+					layerPrecArr[i].maxBias,
+					networkLayerInfoArr[i].flBiasData[j]
+				);
+			}
+			for (int j = 0; j < networkLayerInfoArr[i].numFilterValues; j++)
+			{
+				layerPrecArr[i].minFilter = std::min(
+				    layerPrecArr[i].minFilter,
+					networkLayerInfoArr[i].flFilterData[j]
+				);
+				layerPrecArr[i].maxFilter = std::max(
+				    layerPrecArr[i].maxFilter,
+					networkLayerInfoArr[i].flFilterData[j]
+				);
+				
+			}
+		}
+	}
 }
 
 
@@ -410,19 +402,32 @@ void post_yolo(espresso::Network* net, network* yolo_net, char* cocoNames_FN, im
 }
 
 
-std::vector<layerPrec_obj> profileYOLOWeights(const std::vector<espresso::layerInfo_obj>& networkLayerInfoArr)
+std::vector<layerPrec_t> profileYOLOWeights(const std::vector<espresso::layerInfo_obj>& networkLayerInfoArr)
 {
-    std::vector<layerPrec_obj> layerPrecArr;
+    std::vector<layerPrec_t> layerPrecArr;
     layerPrecArr.resize(networkLayerInfoArr.size());
     for(int i = 0; i < layerPrecArr.size(); i++)
     {
+	    layerPrecArr[i].dinNorm = false;
         layerPrecArr[i].minBias = FLT_MAX;
         layerPrecArr[i].maxBias = -FLT_MAX;
         layerPrecArr[i].minFilter = FLT_MAX;
-        layerPrecArr[i].maxFilter = -FLT_MAX; 
+	    layerPrecArr[i].maxFilter = -FLT_MAX;
+	    layerPrecArr[i].dinFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
+	    layerPrecArr[i].dinNumFracBits = espresso::YOLO_DEF_NUM_FRAC_BITS;
+	    layerPrecArr[i].whtFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
+	    layerPrecArr[i].whtNumFracBits = espresso::YOLO_DEF_NUM_FRAC_BITS;
+	    layerPrecArr[i].doutFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
+	    layerPrecArr[i].doutNumFracBits = espresso::YOLO_DEF_NUM_FRAC_BITS;	
+	    layerPrecArr[i].biasFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
+	    layerPrecArr[i].biasNumFracBits = espresso::YOLO_DEF_NUM_FRAC_BITS;
+	    layerPrecArr[i].leakyFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
+	    layerPrecArr[i].leakyNumFracBits = espresso::YOLO_DEF_NUM_FRAC_BITS;
+	    layerPrecArr[i].layerType = networkLayerInfoArr[i].layerType;
     }
 	getLayerStats(networkLayerInfoArr, layerPrecArr);
     getLayerPrec(layerPrecArr);
+	return layerPrecArr;
 }
 
 
@@ -518,61 +523,36 @@ void setLayerConnections(std::vector<espresso::layerInfo_obj>& networkLayerInfoA
 }
 
 
-void setLayerPrec(std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std::vector<layerPrec_obj> layerPrecArr)
+void setLayerPrec(std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std::vector<layerPrec_t> layerPrecArr)
 {
 	networkLayerInfoArr[0].dinFxPtLength = layerPrecArr[0].dinFxPtLength;
 	networkLayerInfoArr[0].dinNumFracBits = layerPrecArr[0].dinNumFracBits;
 	networkLayerInfoArr[0].doutFxPtLength = layerPrecArr[0].doutFxPtLength;
-	networkLayerInfoArr[0].doutNumFracBits = layerPrecArr[0].doutNumFracBits;	
-	networkLayerInfoArr[1].dinFxPtLength = networkLayerInfoArr[0].doutFxPtLength;
-	networkLayerInfoArr[1].dinNumFracBits = networkLayerInfoArr[0].doutNumFracBits;
-	// assuming bias rep will never be larger than product of wht and din rep
-	int resFxPtLength  = networkLayerInfoArr[1].dinFxPtLength + networkLayerInfoArr[1].whtFxPtLength;
-	int resNumFracBits = networkLayerInfoArr[1].dinNumFracBits + networkLayerInfoArr[1].whtNumFracBits;				
-	networkLayerInfoArr[1].biasFxPtLength = resFxPtLength;
-	networkLayerInfoArr[1].biasNumFracBits = resNumFracBits;       
-	networkLayerInfoArr[1].doutFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
-	networkLayerInfoArr[1].doutNumFracBits = espresso::YOLO_DEF_FXPT_LEN - (layerPrecArr[1].maxtDoutIntBits + 1);
-	fixedPoint::SetParam(
-		espresso::ESPRO_DEF_FXPT_LEN, 
-		espresso::ESPRO_DEF_NUM_FRAC_BITS, 
-		layerPrecArr[1].whtFxPtLength,
-		layerPrecArr[1].whtNumFracBits,
-		networkLayerInfoArr[1].fxFilterData,
-		networkLayerInfoArr[1].numFilterValues
-	);
-	fixedPoint::SetParam(
-		espresso::ESPRO_DEF_FXPT_LEN, 
-		espresso::ESPRO_DEF_NUM_FRAC_BITS, 
-		networkLayerInfoArr[1].biasFxPtLength, 
-		networkLayerInfoArr[1].biasNumFracBits, 
-		networkLayerInfoArr[1].fxBiasData, 
-		networkLayerInfoArr[1].outputDepth
-	); 
-	for (int i = 2; i < networkLayerInfoArr.size(); i++) 
+	networkLayerInfoArr[0].doutNumFracBits = layerPrecArr[0].doutNumFracBits;
+	for (int i = 1; i < networkLayerInfoArr.size(); i++) 
 	{
-		if (networkLayerInfoArr[i].layerType == espresso::YOLO) 
+		if (networkLayerInfoArr[i].layerType == espresso::CONVOLUTION) 
 		{
-			networkLayerInfoArr[i].dinFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
-			networkLayerInfoArr[i].dinNumFracBits = espresso::YOLO_DEF_FXPT_LEN - (layerPrecArr[1].maxtDoutIntBits + 1);
+			networkLayerInfoArr[1].dinFxPtLength = (i == 1) ? networkLayerInfoArr[0].doutFxPtLength : espresso::YOLO_DEF_FXPT_LEN;
+			networkLayerInfoArr[1].dinNumFracBits = (i == 1) ? networkLayerInfoArr[0].doutNumFracBits : espresso::YOLO_DEF_FXPT_LEN - (layerPrecArr[i].maxtDoutIntBits + 1);
 			// assuming bias rep will never be larger than product of wht and din rep
 			int resFxPtLength  = networkLayerInfoArr[i].dinFxPtLength + networkLayerInfoArr[i].whtFxPtLength;
 			int resNumFracBits = networkLayerInfoArr[i].dinNumFracBits + networkLayerInfoArr[i].whtNumFracBits;				
 			networkLayerInfoArr[i].biasFxPtLength = resFxPtLength;
 			networkLayerInfoArr[i].biasNumFracBits = resNumFracBits;
 			networkLayerInfoArr[i].doutFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
-			networkLayerInfoArr[i].doutNumFracBits = espresso::YOLO_DEF_FXPT_LEN - (layerPrecArr[1].maxtDoutIntBits + 1);
+			networkLayerInfoArr[i].doutNumFracBits = espresso::YOLO_DEF_FXPT_LEN - (layerPrecArr[i].maxtDoutIntBits + 1);
 			fixedPoint::SetParam(
-				espresso::ESPRO_DEF_FXPT_LEN, 
-				espresso::ESPRO_DEF_NUM_FRAC_BITS, 
+				espresso::YOLO_DEF_FXPT_LEN, 
+				espresso::YOLO_DEF_NUM_FRAC_BITS, 
 				layerPrecArr[i].whtFxPtLength,
 				layerPrecArr[i].whtNumFracBits,
 				networkLayerInfoArr[i].fxFilterData,
 				networkLayerInfoArr[i].numFilterValues
 			);
 			fixedPoint::SetParam(
-				espresso::ESPRO_DEF_FXPT_LEN, 
-				espresso::ESPRO_DEF_NUM_FRAC_BITS,
+				espresso::YOLO_DEF_FXPT_LEN, 
+				espresso::YOLO_DEF_NUM_FRAC_BITS,
 				networkLayerInfoArr[i].biasFxPtLength, 
 				networkLayerInfoArr[i].biasNumFracBits, 
 				networkLayerInfoArr[i].fxBiasData, 
@@ -586,7 +566,7 @@ void setLayerPrec(std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std
 
 int main(int argc, char **argv) 
 {
-	espresso::precision_t precision = espresso::FLOAT;
+	espresso::precision_t precision = espresso::FIXED;
 	espresso::backend_t backend = espresso::DARKNET_BACKEND;
 	network* yolo_net = NULL;
 	std::string yolov3_cfg_FN = "/home/ikenna/IkennaWorkSpace/darknet/cfg/yolov3.cfg"; 
@@ -601,7 +581,7 @@ int main(int argc, char **argv)
 		espresso::YOLO_DEF_NUM_FRAC_BITS
 	);
 	std::vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
-	std::vector<layerPrec_obj> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
+	std::vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
 	setLayerPrec(networkLayerInfoArr, layerPrecArr);
 	std::string imgFN = "/home/ikenna/IkennaWorkSpace/darknet/data/dog.jpg";
 	espresso::Network net(networkLayerInfoArr, outputLayers);
