@@ -127,7 +127,7 @@ TARGET_COMPILE_OPTIONS(${TARGET_NAME} PUBLIC
 
 # BEGIN Include directories -------------------------------------------------------------------------------------------------------------------------
 TARGET_INCLUDE_DIRECTORIES(${TARGET_NAME} PUBLIC
-    ${PROJECT_SOURCE_DIR}/include/
+    ${PROJECT_SOURCE_DIR}/inc/
     ${PROJECT_SOURCE_DIR}/../caffeDataParser/inc/
     ${PROJECT_SOURCE_DIR}/../espresso/inc/
     ${PROJECT_SOURCE_DIR}/../fixedPoint/inc/
@@ -152,7 +152,7 @@ else()
     TARGET_LINK_LIBRARIES(${TARGET_NAME} PUBLIC
         -L/usr/local/lib
         -L/usr/lib/
-		-L/home/ikenna/IkennaWorkSpace/darknet/build/
+		-L${PROJECT_SOURCE_DIR}/../darknet/build/
 		-L${PROJECT_SOURCE_DIR}/../util/build
 		-L${PROJECT_SOURCE_DIR}/../fixedPoint/build
 		-L${PROJECT_SOURCE_DIR}/../espresso/build
