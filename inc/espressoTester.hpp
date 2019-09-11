@@ -1,34 +1,32 @@
 // System includes
 #include <iomanip>
 #include <fstream>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-
 
 
 // Project includes
 #include "Network.hpp"
 
 
-class layerPrec_obj
+typedef struct
 {
-	public:
-		bool dinNorm;
-		float minBias;
-		float maxBias;
-		float minFilter;
-		float maxFilter;
-		int dinFxPtLength;
-		int dinNumFracBits; 
-		int doutFxPtLength;
-		int doutNumFracBits;
-		int leakyFxPtLength;
-		int leakyNumFracBits;
-	    int whtFxPtLength;
-	    int whtNumFracBits;
-		int maxtDoutIntBits;
-		espresso::layerType_t layerType;
-};
+	bool dinNorm;
+	float minBias;
+	float maxBias;
+	float minFilter;
+	float maxFilter;
+	int dinFxPtLength;
+	int dinNumFracBits; 
+	int doutFxPtLength;
+	int doutNumFracBits;
+	int biasFxPtLength;
+	int biasNumFracBits;
+	int leakyFxPtLength;
+	int leakyNumFracBits;
+	int whtFxPtLength;
+	int whtNumFracBits;
+	int maxtDoutIntBits;
+	espresso::layerType_t layerType;
+} layerPrec_t;
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -69,27 +67,7 @@ std::vector<std::vector<kernel_group*>> createKernelGroupArr(int numKernels, int
  *		@brief			function description
  *		@param	param0	param0 description
  *		@param	param1	param1 description
- *		@return			0 success, 1 failure                   
- */
-// --------------------------------------------------------------------------------------------------------------------------------------------------
-void createKernelGroups(espresso::layerInfo_obj& networkLayerInfo);
-
-
-// --------------------------------------------------------------------------------------------------------------------------------------------------
-/**
- *		@brief			function description
- *		@param	param0	param0 description
- *		@param	param1	param1 description
- *		@return			0 success, 1 failure                   
- */
-// --------------------------------------------------------------------------------------------------------------------------------------------------
-std::vector<espresso::layerInfo_obj> darknetDataTransform(
-	network** net, 
-	char* configFileName, 
-	char* weightFileName,
-	espresso::backend_t backend,
-	espresso::precision_t precision,
-	int fxPtLen = espresso::ESPRO_DEF_FXPT_LEN,
+ *		@return			0 success, 1 failure                   LOYOLO_DEF_FXPT_LEN,
 	int numFracBits = espresso::ESPRO_DEF_NUM_FRAC_BITS
 );
 
@@ -124,7 +102,7 @@ void getFxPtWeights(espresso::layerInfo_obj& networkLayerInfo);
  *		@return			0 success, 1 failure                   
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-void getLayerPrec(std::vector<layerPrec_obj> layerPrecArr);
+void getLayerPrec(std::vector<layerPrec_t>& layerPrecArr);
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -135,7 +113,7 @@ void getLayerPrec(std::vector<layerPrec_obj> layerPrecArr);
  *		@return			0 success, 1 failure                   
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-void getLayerStats(const std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std::vector<layerPrec_obj> layerPrecArr);
+void getLayerStats(const std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std::vector<layerPrec_t>& layerPrecArr);
 
 
 
@@ -180,7 +158,7 @@ void post_yolo(espresso::Network* net, network* yolo_net, char* cocoNames_FN, im
  *		@return			0 success, 1 failure                   
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-std::vector<layerPrec_obj> profileYOLOWeights(const std::vector<espresso::layerInfo_obj>& networkLayerInfoArr);
+std::vector<layerPrec_t> profileYOLOWeights(const std::vector<espresso::layerInfo_obj>& networkLayerInfoArr);
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -224,4 +202,4 @@ void setLayerConnections(std::vector<espresso::layerInfo_obj>& networkLayerInfoA
  *		@return			0 success, 1 failure                   
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-void setLayerPrec(std::vector<espresso::layerInfo_obj>& networkLayerInfoArr,);
+void setLayerPrec(std::vector<espresso::layerInfo_obj>& networkLayerInfoArr);
