@@ -17,7 +17,6 @@ void cfgInputLayer(const image& im, espresso::Network* net, const espresso::laye
 			net->m_cnn[0]->m_blob.fxData[i] = fixedPoint::create(networkLayerInfo.dinFxPtLength, networkLayerInfo.dinNumFracBits, im.data[i]);
 		}
 	}
-
 }
 
 
@@ -532,16 +531,26 @@ void setLayerPrec(std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std
 	for (int i = 1; i < networkLayerInfoArr.size(); i++) 
 	{
 		if (networkLayerInfoArr[i].layerType == espresso::CONVOLUTION) 
-		{
-			networkLayerInfoArr[1].dinFxPtLength = (i == 1) ? networkLayerInfoArr[0].doutFxPtLength : espresso::YOLO_DEF_FXPT_LEN;
-			networkLayerInfoArr[1].dinNumFracBits = (i == 1) ? networkLayerInfoArr[0].doutNumFracBits : espresso::YOLO_DEF_FXPT_LEN - (layerPrecArr[i].maxtDoutIntBits + 1);
+		{   
+            if(i == 1) 
+            {
+                networkLayerInfoArr[i].dinFxPtLength = networkLayerInfoArr[0].doutFxPtLength;
+                networkLayerInfoArr[i].dinNumFracBits = networkLayerInfoArr[0].doutNumFracBits;
+            }
+            else
+            {
+                networkLayerInfoArr[i].dinFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
+                networkLayerInfoArr[i].dinNumFracBits = espresso::YOLO_DEF_FXPT_LEN - (layerPrecArr[i].maxtDoutIntBits + 1);             
+            }
 			// assuming bias rep will never be larger than product of wht and din rep
-			int resFxPtLength  = networkLayerInfoArr[i].dinFxPtLength + networkLayerInfoArr[i].whtFxPtLength;
+			int resFxPtLength = networkLayerInfoArr[i].dinFxPtLength + networkLayerInfoArr[i].whtFxPtLength;
 			int resNumFracBits = networkLayerInfoArr[i].dinNumFracBits + networkLayerInfoArr[i].whtNumFracBits;				
 			networkLayerInfoArr[i].biasFxPtLength = resFxPtLength;
 			networkLayerInfoArr[i].biasNumFracBits = resNumFracBits;
 			networkLayerInfoArr[i].doutFxPtLength = espresso::YOLO_DEF_FXPT_LEN;
 			networkLayerInfoArr[i].doutNumFracBits = espresso::YOLO_DEF_FXPT_LEN - (layerPrecArr[i].maxtDoutIntBits + 1);
+            networkLayerInfoArr[i].leakyFxPtLength = layerPrecArr[i].leakyFxPtLength;
+		    networkLayerInfoArr[i].leakyNumFracBits = layerPrecArr[i].leakyNumFracBits;
 			fixedPoint::SetParam(
 				espresso::YOLO_DEF_FXPT_LEN, 
 				espresso::YOLO_DEF_NUM_FRAC_BITS, 
@@ -561,7 +570,6 @@ void setLayerPrec(std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std
 		}
 	}
 }
-
 
 
 int main(int argc, char **argv) 
