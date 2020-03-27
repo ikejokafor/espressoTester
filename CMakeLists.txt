@@ -91,13 +91,33 @@ ADD_EXECUTABLE(${TARGET_NAME} ${TARGET_SRCS} ${TARGET_HEADERS})
 
 # BEGIN Set Output Path for libs or bins ------------------------------------------------------------------------------------------------------------
 SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
-                        RUNTIME_OUTPUT_DIRECTORY 
-                        ${PROJECT_SOURCE_DIR}/build/)
+                        RUNTIME_OUTPUT_DIRECTORY_DEBUG 
+                        ${PROJECT_SOURCE_DIR}/build/debug)
+SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+                        RUNTIME_OUTPUT_DIRECTORY_RELEASE 
+                        ${PROJECT_SOURCE_DIR}/build/release)
+            
+SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+                        LIBRARY_OUTPUT_DIRECTORY_DEBUG 
+                        ${PROJECT_SOURCE_DIR}/build/debug)
+SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+                        LIBRARY_OUTPUT_DIRECTORY_RELEASE
+                        ${PROJECT_SOURCE_DIR}/build/release)
+             
+SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+                        ARCHIVE_OUTPUT_DIRECTORY_DEBUG
+                        ${PROJECT_SOURCE_DIR}/build/debug)
+SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+                        ARCHIVE_OUTPUT_DIRECTORY_RELEASE
+                        ${PROJECT_SOURCE_DIR}/build/release)
 # END Set Output Path for libs or bins --------------------------------------------------------------------------------------------------------------
 
 
 # BEGIN Build dependencies --------------------------------------------------------------------------------------------------------------------------
 ADD_DEPENDENCIES(${TARGET_NAME} espresso)
+ADD_DEPENDENCIES(${TARGET_NAME} sysc_fpga_shim)
+ADD_DEPENDENCIES(${TARGET_NAME} network)
+ADD_DEPENDENCIES(${TARGET_NAME} myNetProto)
 # ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
 # ADD_DEPENDENCIES(${TARGET_NAME} fixedPoint)
 # ADD_DEPENDENCIES(${TARGET_NAME} darknet_arcv)
@@ -118,7 +138,7 @@ set(CMAKLE_CXX_FLAGS_RELEASE "-O3")
 
 # BEGIN Compiler Flags ------------------------------------------------------------------------------------------------------------------------------
 TARGET_COMPILE_OPTIONS(${TARGET_NAME} PUBLIC 
-    "-std=c++11" 
+    "-std=c++14"
     "-Wall"
     "-fexceptions"
 )
@@ -130,11 +150,18 @@ TARGET_INCLUDE_DIRECTORIES(${TARGET_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/inc/
     ${PROJECT_SOURCE_DIR}/../caffeDataParser/inc/
     ${PROJECT_SOURCE_DIR}/../espresso/inc/
+    ${PROJECT_SOURCE_DIR}/../espresso/inc/CPU
+    ${PROJECT_SOURCE_DIR}/../espresso/inc/FPGA
+    ${PROJECT_SOURCE_DIR}/../espresso/inc/Darknet
     ${PROJECT_SOURCE_DIR}/../fixedPoint/inc/
     ${PROJECT_SOURCE_DIR}/../caffeClassifier/inc/
-	${PROJECT_SOURCE_DIR}/../darknet/include/
-	${PROJECT_SOURCE_DIR}/../darknet/src/
-	${PROJECT_SOURCE_DIR}/../util/inc/
+    ${PROJECT_SOURCE_DIR}/../darknet/include/
+    ${PROJECT_SOURCE_DIR}/../darknet/src/
+    ${PROJECT_SOURCE_DIR}/../util/inc/
+    ${PROJECT_SOURCE_DIR}/../FPGA_shim/inc/
+    ${PROJECT_SOURCE_DIR}/../SYSC_FPGA_shim/inc/
+    ${PROJECT_SOURCE_DIR}/../network/inc/
+    ${PROJECT_SOURCE_DIR}/../myNetProto/inc/
 )
 # END Include directories ---------------------------------------------------------------------------------------------------------------------------
 
@@ -152,22 +179,28 @@ else()
     TARGET_LINK_LIBRARIES(${TARGET_NAME} PUBLIC
         -L/usr/local/lib
         -L/usr/lib/
-		-L${PROJECT_SOURCE_DIR}/../darknet/build/
+		-L$ENV{WORKSPACE_PATH}/darknet/build/
 		-L${PROJECT_SOURCE_DIR}/../util/build
 		-L${PROJECT_SOURCE_DIR}/../fixedPoint/build
-		-L${PROJECT_SOURCE_DIR}/../espresso/build
+		-L${PROJECT_SOURCE_DIR}/../espresso/build/debug/
+        -L${PROJECT_SOURCE_DIR}/../network/build/debug/
+        -L${PROJECT_SOURCE_DIR}/../myNetProto/build/debug/
+        -L${PROJECT_SOURCE_DIR}/../SYSC_FPGA_shim/build/debug/
 		#-lcaffe
         #-lprotobuf
-        -lopencv_core
-        -lopencv_highgui
-        -lopencv_imgproc
+        #-lopencv_core
+        #-lopencv_highgui
+        #-lopencv_imgproc
 		-ldarknet_arcv
 		-lpthread
 		#caffeClassifier
         #caffeDataParser
 		-lutil
         -lespresso
+        -lsysc_fpga_shim
         -lfixedPoint
+        -lnetwork
+        -lmyNetProto
         #RL
 )
 endif()

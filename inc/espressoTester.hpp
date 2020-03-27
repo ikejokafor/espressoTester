@@ -4,7 +4,7 @@
 
 
 // Project includes
-#include "Network.hpp"
+#include "CNN_Network.hpp"
 
 
 typedef struct
@@ -37,7 +37,7 @@ typedef struct
  *		@return			0 success, 1 failure                   
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-void cfgInputLayer(const image& im, espresso::Network* net, const espresso::layerInfo_obj& networkLayerInfo, espresso::precision_t precision);
+void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::layerInfo_obj& networkLayerInfo, espresso::precision_t precision);
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -147,7 +147,7 @@ std::vector<int> getYOLOOutputLayers(std::vector<espresso::layerInfo_obj> &netwo
  *		@return			0 success, 1 failure                   
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-void post_yolo(espresso::Network* net, network* yolo_net, char* cocoNames_FN, image im, char* imgOut_FN);
+void post_yolo(espresso::CNN_Network* net, network* yolo_net, char* cocoNames_FN, image im, char* imgOut_FN);
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -169,7 +169,7 @@ std::vector<layerPrec_t> profileYOLOWeights(const std::vector<espresso::layerInf
  *		@return			0 success, 1 failure                   
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------	
-void setBaseLayerInfo(int i, layer* layer_i, espresso::layerInfo_obj& networkLayerInfo, espresso::precision_t precision, int fxPtLen, int numFracBits, network* yolo_net);
+void setBaseLayerInfo(int i, layer* layer_i, espresso::layerInfo_obj& networkLayerInfo, espresso::precision_t precision, int fxPtLen, int numFracBits, espresso::backend_t backend, network* yolo_net);
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
