@@ -1,4 +1,5 @@
 #include "espressoTester.hpp"
+using namespace std;
 
 
 void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::layerInfo_obj& networkLayerInfo, espresso::precision_t precision)
@@ -570,7 +571,11 @@ void setLayerPrec(std::vector<espresso::layerInfo_obj>& networkLayerInfoArr, std
 int main(int argc, char **argv) 
 {
 	SYSC_FPGA_hndl *m_sysc_fpga_hndl = new SYSC_FPGA_hndl();
-	m_sysc_fpga_hndl->software_init();
+	if(m_sysc_fpga_hndl->software_init() == -1)
+	{
+		cout << "Software Init Failed" << endl;
+		exit(1);
+	}
 
 	espresso::precision_t precision = espresso::FIXED;
 	espresso::backend_t backend = espresso::FPGA_BACKEND;
