@@ -23,7 +23,7 @@
 #       $ mkdir build/release
 #       $ cd build/release
 #       $ cmake ../../ -DCMAKE_BUILD_TYPE=Release
-#   
+#
 #####################################################################################################################################################
 
 # BEGIN CMAKE Version (Required Line) ---------------------------------------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ PROJECT(${TARGET_NAME})
 
 
 # BEGIN Target Sources ------------------------------------------------------------------------------------------------------------------------------
-FILE(GLOB TARGET_SRCS 
+FILE(GLOB TARGET_SRCS
     ${PROJECT_SOURCE_DIR}/src/*.c
     ${PROJECT_SOURCE_DIR}/src/*.cpp
     ${PROJECT_SOURCE_DIR}/src/*.cu
@@ -69,7 +69,7 @@ FILE(GLOB TARGET_SRCS
 
 # BEGIN Target Headers ------------------------------------------------------------------------------------------------------------------------------
 FILE(GLOB TARGET_HEADERS
-    ${PROJECT_SOURCE_DIR}/include/*.h 
+    ${PROJECT_SOURCE_DIR}/include/*.h
     ${PROJECT_SOURCE_DIR}/include/*.hpp
     ${PROJECT_SOURCE_DIR}/include/*.cuh
 )
@@ -91,19 +91,19 @@ ADD_EXECUTABLE(${TARGET_NAME} ${TARGET_SRCS} ${TARGET_HEADERS})
 
 # BEGIN Set Output Path for libs or bins ------------------------------------------------------------------------------------------------------------
 SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
-                        RUNTIME_OUTPUT_DIRECTORY_DEBUG 
+                        RUNTIME_OUTPUT_DIRECTORY_DEBUG
                         ${PROJECT_SOURCE_DIR}/build/debug)
 SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
-                        RUNTIME_OUTPUT_DIRECTORY_RELEASE 
+                        RUNTIME_OUTPUT_DIRECTORY_RELEASE
                         ${PROJECT_SOURCE_DIR}/build/release)
-            
+
 SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
-                        LIBRARY_OUTPUT_DIRECTORY_DEBUG 
+                        LIBRARY_OUTPUT_DIRECTORY_DEBUG
                         ${PROJECT_SOURCE_DIR}/build/debug)
 SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
                         LIBRARY_OUTPUT_DIRECTORY_RELEASE
                         ${PROJECT_SOURCE_DIR}/build/release)
-             
+
 SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
                         ARCHIVE_OUTPUT_DIRECTORY_DEBUG
                         ${PROJECT_SOURCE_DIR}/build/debug)
@@ -118,7 +118,7 @@ ADD_DEPENDENCIES(${TARGET_NAME} espresso)
 ADD_DEPENDENCIES(${TARGET_NAME} sysc_fpga_shim)
 ADD_DEPENDENCIES(${TARGET_NAME} network)
 ADD_DEPENDENCIES(${TARGET_NAME} myNetProto)
-# ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
+ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
 # ADD_DEPENDENCIES(${TARGET_NAME} fixedPoint)
 # ADD_DEPENDENCIES(${TARGET_NAME} darknet_arcv)
 # ADD_DEPENDENCIES(${TARGET_NAME} util)
@@ -137,7 +137,7 @@ set(CMAKLE_CXX_FLAGS_RELEASE "-O3")
 
 
 # BEGIN Compiler Flags ------------------------------------------------------------------------------------------------------------------------------
-TARGET_COMPILE_OPTIONS(${TARGET_NAME} PUBLIC 
+TARGET_COMPILE_OPTIONS(${TARGET_NAME} PUBLIC
     "-std=c++14"
     "-Wall"
     "-fexceptions"
@@ -186,6 +186,7 @@ else()
         -L${PROJECT_SOURCE_DIR}/../network/build/debug/
         -L${PROJECT_SOURCE_DIR}/../myNetProto/build/debug/
         -L${PROJECT_SOURCE_DIR}/../SYSC_FPGA_shim/build/debug/
+        -L${PROJECT_SOURCE_DIR}/../caffeDataParser/build/debug/
 		#-lcaffe
         #-lprotobuf
         #-lopencv_core
@@ -201,6 +202,8 @@ else()
         -lfixedPoint
         -lnetwork
         -lmyNetProto
+        -lcaffeDataParser
+        -lprotobuf
         #RL
 )
 endif()
