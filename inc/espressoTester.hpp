@@ -51,7 +51,7 @@ espresso::layerType_t getEspLayType(std::string layerType);
  *		@return			0 success, 1 failure
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-std::vector<espresso::layerInfo_obj*> caffeDataTransform(std::vector<caffeDataParser::layerInfo_t> caffeDataParserLayerInfo);
+std::vector<espresso::layerInfo_obj*> caffeDataTransform(std::vector<caffeDataParser::layerInfo_t> caffeDataParserLayerInfo, espresso::backend_t backend);
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ int findCaffeLayer(std::string layerName, std::vector<caffeDataParser::layerInfo
  *		@return			0 success, 1 failure
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::layerInfo_obj& networkLayerInfo, espresso::precision_t precision);
+void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::layerInfo_obj* networkLayerInfo, espresso::precision_t precision);
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -159,7 +159,7 @@ void getWeights(espresso::layerInfo_obj* networkLayerInfo, layer* layer_i, espre
  *		@return			0 success, 1 failure
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
-std::vector<int> getYOLOOutputLayers(std::vector<espresso::layerInfo_obj*> &networkLayerInfo);
+std::vector<int> getYOLOOutputLayers(std::vector<espresso::layerInfo_obj*>& networkLayerInfo);
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
