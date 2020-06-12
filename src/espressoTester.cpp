@@ -610,7 +610,14 @@ int main(int argc, char **argv)
     net.cfgFPGALayers(yolov3_mrgd_fm_FN);
     net.printMemBWStats();
     net.setHardware(m_sysc_fpga_hndl);
-    net.Forward();
+    if(argc == 2)
+    {
+        net.Forward(argv[1]);
+    }
+    else
+    {
+        net.Forward();
+    }
     // string imgOut_FN = "predictions";
     // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
     // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
