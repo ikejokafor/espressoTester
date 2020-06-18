@@ -1,7 +1,7 @@
 #include "espressoTester.hpp"
 using namespace std;
 
-
+#ifdef CAFFE
 espresso::layerType_t getEspLayType(string layerType)
 {
     if(layerType == "Input")
@@ -145,7 +145,7 @@ vector<espresso::layerInfo_obj*> caffeDataTransform(vector<caffeDataParser::laye
     }
     return networkLayerInfoArr;
 }
-
+#endif
 
 void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::layerInfo_obj* networkLayerInfo, espresso::precision_t precision)
 {
@@ -608,7 +608,7 @@ int main(int argc, char **argv)
     image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
     cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
     net.cfgFPGALayers(yolov3_mrgd_fm_FN);
-    // net.printMemBWStats();
+    net.printMemBWStats();
     net.setHardware(m_sysc_fpga_hndl);
     if(argc == 2)
     {
@@ -618,7 +618,6 @@ int main(int argc, char **argv)
     {
         net.Forward();
     }
-    net.printExecutionStats();
     // string imgOut_FN = "predictions";
     // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
     // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());

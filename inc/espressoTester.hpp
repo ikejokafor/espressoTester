@@ -7,8 +7,9 @@
 
 // Project includes
 #include "CNN_Network.hpp"
+#ifdef CAFFE
 #include "caffeDataParser.hpp"
-
+#endif
 
 typedef struct
 {
@@ -31,7 +32,7 @@ typedef struct
 	espresso::layerType_t layerType;
 } layerPrec_t;
 
-
+#ifdef CAFFE
 // --------------------------------------------------------------------------------------------------------------------------------------------------
 /**
  *		@brief			function description
@@ -63,7 +64,7 @@ std::vector<espresso::layerInfo_obj*> caffeDataTransform(std::vector<caffeDataPa
  */
 // --------------------------------------------------------------------------------------------------------------------------------------------------
 int findCaffeLayer(std::string layerName, std::vector<caffeDataParser::layerInfo_t> caffeLayerInfo);
-
+#endif
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------
 /**
