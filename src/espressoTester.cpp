@@ -608,7 +608,7 @@ int main(int argc, char **argv)
     image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
     cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
     net.cfgFPGALayers(yolov3_mrgd_fm_FN);
-    net.printMemBWStats();
+    // net.printMemBWStats();
     net.setHardware(m_sysc_fpga_hndl);
     if(argc == 2)
     {
@@ -618,6 +618,7 @@ int main(int argc, char **argv)
     {
         net.Forward();
     }
+    net.printExecutionStats();
     // string imgOut_FN = "predictions";
     // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
     // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
