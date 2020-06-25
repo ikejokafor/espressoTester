@@ -192,6 +192,7 @@ else()
     TARGET_LINK_LIBRARIES(${TARGET_NAME} PUBLIC
         -L/usr/local/lib
         -L/usr/lib/
+        -L$ENV{WORKSPACE_PATH}/darknet/
 		-L$ENV{WORKSPACE_PATH}/darknet/build/
 		-L${PROJECT_SOURCE_DIR}/../util/build
 		-L${PROJECT_SOURCE_DIR}/../fixedPoint/build/${BUILD_DIR_SUFFIX}/

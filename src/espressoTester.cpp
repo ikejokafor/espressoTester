@@ -608,7 +608,8 @@ int main(int argc, char **argv)
     image im = load_image_color((char*)imgFN.c_str(), 0, 0);
     image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
     cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
-    net.cfgFPGALayers(yolov3_mrgd_fm_FN);
+    // net.cfgFPGALayers(yolov3_mrgd_fm_FN);
+    net.cfgFPGALayers();
     // net.printMemBWStats();
     net.setHardware(m_sysc_fpga_hndl);
     if(argc == 2)
