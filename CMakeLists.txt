@@ -160,6 +160,9 @@ TARGET_COMPILE_OPTIONS(${TARGET_NAME} PUBLIC
 
 # BEGIN Include directories -------------------------------------------------------------------------------------------------------------------------
 TARGET_INCLUDE_DIRECTORIES(${TARGET_NAME} PUBLIC
+    /usr/include/
+    /usr/local/include/
+    $ENV{IZO5011_X86_DEV_TOOLS}/include/
     ${PROJECT_SOURCE_DIR}/inc/
     ${PROJECT_SOURCE_DIR}/../caffeDataParser/inc/
     ${PROJECT_SOURCE_DIR}/../espresso/inc/
