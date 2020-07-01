@@ -173,6 +173,7 @@ TARGET_INCLUDE_DIRECTORIES(${TARGET_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/../util/inc/
     ${PROJECT_SOURCE_DIR}/../FPGA_shim/inc/
     ${PROJECT_SOURCE_DIR}/../SYSC_FPGA_shim/inc/
+    ${PROJECT_SOURCE_DIR}/../cnn_layer_accel/model/inc/
     ${PROJECT_SOURCE_DIR}/../network/inc/
     ${PROJECT_SOURCE_DIR}/../myNetProto/inc/
 )
@@ -194,6 +195,7 @@ else()
         -L/usr/lib/
         -L$ENV{WORKSPACE_PATH}/darknet/
 		-L$ENV{WORKSPACE_PATH}/darknet/build/
+        -L$ENV{IZO5011_X86_DEV_TOOLS}/lib/
 		-L${PROJECT_SOURCE_DIR}/../util/build
 		-L${PROJECT_SOURCE_DIR}/../fixedPoint/build/${BUILD_DIR_SUFFIX}/
 		-L${PROJECT_SOURCE_DIR}/../espresso/build/${BUILD_DIR_SUFFIX}/
@@ -206,8 +208,7 @@ else()
         #-lopencv_core
         #-lopencv_highgui
         #-lopencv_imgproc
-		-ldarknet_arcv
-		-lpthread
+		-ldarknet
 		#caffeClassifier
         #caffeDataParser
 		-lutil
@@ -218,6 +219,7 @@ else()
         -lmyNetProto
         -lcaffeDataParser
         -lprotobuf
+        -lpthread
         #RL
 )
 endif()
