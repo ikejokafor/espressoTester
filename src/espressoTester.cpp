@@ -608,23 +608,23 @@ int main(int argc, char **argv)
     image im = load_image_color((char*)imgFN.c_str(), 0, 0);
     image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
     cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
-    // net.cfgFPGALayers(yolov3_mrgd_fm_FN);
-    net.cfgFPGALayers();
+    net.cfgFPGALayers(yolov3_mrgd_fm_FN);
     // net.printMemBWStats();
+    net.printAccelPerfAnalyStats();
     net.setHardware(m_sysc_fpga_hndl);
-    if(argc == 2)
-    {
-        net.Forward(argv[1]);
-    }
-    else if(argc == 3)
-    {
-        net.Forward(argv[1], argv[2]);
-    }
-    else
-    {
-        net.Forward();
-    }
-    net.printExecutionStats();
+    //if(argc == 2)
+    //{
+    //    net.Forward(argv[1]);
+    //}
+    //else if(argc == 3)
+    //{
+    //    net.Forward(argv[1], argv[2]);
+    //}
+    //else
+    //{
+    //    net.Forward();
+    //}
+    //net.printExecutionStats();
     // string imgOut_FN = "predictions";
     // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
     // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
