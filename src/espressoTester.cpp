@@ -612,19 +612,19 @@ int main(int argc, char **argv)
     // net.printMemBWStats();
     net.printAccelPerfAnalyStats();
     net.setHardware(m_sysc_fpga_hndl);
-    //if(argc == 2)
-    //{
-    //    net.Forward(argv[1]);
-    //}
-    //else if(argc == 3)
-    //{
-    //    net.Forward(argv[1], argv[2]);
-    //}
-    //else
-    //{
-    //    net.Forward();
-    //}
-    //net.printExecutionStats();
+    if(argc == 2)
+    {
+        net.Forward(argv[1]);
+    }
+    else if(argc == 3)
+    {
+        net.Forward(argv[1], argv[2]);
+    }
+    else
+    {
+        net.Forward();
+    }
+    net.printExecutionStats();
     // string imgOut_FN = "predictions";
     // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
     // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
