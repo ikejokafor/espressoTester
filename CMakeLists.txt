@@ -48,7 +48,7 @@ PROJECT(${TARGET_NAME})
 
 
 # BEGIN Compiler Definitions ------------------------------------------------------------------------------------------------------------------------
-#add_definitions(-DLINUX)
+add_definitions(-DCAFFE_DATA_PARSER)
 # END Compiler Definitions --------------------------------------------------------------------------------------------------------------------------
 
 
@@ -114,12 +114,12 @@ SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
 
 
 # BEGIN Build dependencies --------------------------------------------------------------------------------------------------------------------------
-ADD_DEPENDENCIES(${TARGET_NAME} espresso)
-ADD_DEPENDENCIES(${TARGET_NAME} sysc_fpga_shim)
+ADD_DEPENDENCIES(${TARGET_NAME} fixedPoint)
 ADD_DEPENDENCIES(${TARGET_NAME} network)
 ADD_DEPENDENCIES(${TARGET_NAME} myNetProto)
+ADD_DEPENDENCIES(${TARGET_NAME} espresso)
+ADD_DEPENDENCIES(${TARGET_NAME} sysc_fpga_shim)
 ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
-ADD_DEPENDENCIES(${TARGET_NAME} fixedPoint)
 # ADD_DEPENDENCIES(${TARGET_NAME} darknet_arcv)
 # ADD_DEPENDENCIES(${TARGET_NAME} util)
 # ADD_DEPENDENCIES(${TARGET_NAME} caffeClassifier)
@@ -213,14 +213,13 @@ else()
         #-lopencv_imgproc
 		-ldarknet
 		#caffeClassifier
-        #caffeDataParser
 		-lutil
-        -lespresso
-        -lsysc_fpga_shim
-        -lfixedPoint
-        -lnetwork
-        -lmyNetProto
-        -lcaffeDataParser
+        espresso
+        sysc_fpga_shim
+        fixedPoint
+        network
+        myNetProto
+        caffeDataParser
         -lprotobuf
         -lpthread
         #RL

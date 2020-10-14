@@ -4,10 +4,9 @@
 #include <fstream>
 #include <cstdlib>
 
-
 // Project includes
 #include "CNN_Network.hpp"
-#ifdef CAFFE
+#ifdef CAFFE_DATA_PARSER
 #include "caffeDataParser.hpp"
 #endif
 
@@ -33,7 +32,7 @@ typedef struct
 } layerPrec_t;
 
 
-#ifdef CAFFE
+#ifdef CAFFE_DATA_PARSER
 // --------------------------------------------------------------------------------------------------------------------------------------------------
 /**
  *		@brief			function description
