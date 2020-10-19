@@ -78,6 +78,7 @@ int findCaffeLayer(string layerName, vector<caffeDataParser::layerInfo_t> caffeL
 
 vector<espresso::layerInfo_obj*> caffeDataTransform(vector<caffeDataParser::layerInfo_t> caffeLayerInfo, espresso::backend_t backend)
 {
+	printf("Loading Caffe Data.....\n");
     vector<espresso::layerInfo_obj*> networkLayerInfoArr;
     espresso::layerInfo_obj* layerInfo;
     for(int i = 0; i < caffeLayerInfo.size(); i++)
@@ -191,6 +192,7 @@ vector<espresso::layerInfo_obj*> darknetDataTransform(
     int fxPtLen,
     int numFracBits
 ) {
+	printf("Loading Darknet Data.....\n");
     *net = parse_network_cfg(configFileName);
     network* net_ptr = *net;
     load_weights(net_ptr, weightFileName);
