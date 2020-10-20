@@ -119,6 +119,7 @@ vector<espresso::layerInfo_obj*> caffeDataTransform(vector<caffeDataParser::laye
         layerInfo->alpha                   = caffeLayerInfo[i].alpha;
         layerInfo->flBeta                  = caffeLayerInfo[i].beta;
         layerInfo->numKernels              = layerInfo->outputDepth;
+        layerInfo->dilation                = caffeLayerInfo[i].dilation;
         if(caffeLayerInfo[i].layerType == "Convolution" || caffeLayerInfo[i].layerType == "InnerProduct")
         {
             // layerInfo->flFilterData = (float*)malloc(    caffeLayerInfo[i].numFilterValues
@@ -588,50 +589,50 @@ int main(int argc, char **argv)
     }
 
     // YOLOv3
-    espresso::precision_t precision = espresso::FLOAT;
-    espresso::backend_t backend = espresso::FPGA_BACKEND;
-    network* yolo_net = NULL;
-    string yolov3_cfg_FN = WSpath + "/darknet/cfg/yolov3.cfg";
-    string yolov3_whts_FN = WSpath + "/darknet/cfg/yolov3.weights";
-    string yolov3_mrgd_fm_FN = WSpath + "/darknet/cfg/yolov3_merged_fmt.txt";
-    vector<espresso::layerInfo_obj*> networkLayerInfoArr = darknetDataTransform(
-        &yolo_net,
-        (char*)yolov3_cfg_FN.c_str(),
-        (char*)yolov3_whts_FN.c_str(),
-        backend,
-        precision,
-        espresso::YOLO_DEF_FXPT_LEN,
-        espresso::YOLO_DEF_NUM_FRAC_BITS
-    );
-    vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
-    // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
-    string imgFN = WSpath + "/darknet/data/dog.jpg";
-    espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
-    image im = load_image_color((char*)imgFN.c_str(), 0, 0);
-    image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
-    cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
-    // net.cfgFPGALayers(yolov3_mrgd_fm_FN);
-	net.cfgFPGALayers();
-    // net.printMemBWStats();
-    net.setHardware(m_sysc_fpga_hndl);
-    if(argc == 2)
-    {
-        net.Forward(argv[1]);
-    }
-    else if(argc == 3)
-    {
-        net.Forward(argv[1], argv[2]);
-    }
-    else
-    {
-        net.Forward();
-    }
-	net.printAccelPerfAnalyStats();
-    // string imgOut_FN = "predictions";
-    // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
-    // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
-    // free_image(im);
-    // free_image(sized);
+    // espresso::precision_t precision = espresso::FLOAT;
+    // espresso::backend_t backend = espresso::FPGA_BACKEND;
+    // network* yolo_net = NULL;
+    // string yolov3_cfg_FN = WSpath + "/darknet/cfg/yolov3.cfg";
+    // string yolov3_whts_FN = WSpath + "/darknet/cfg/yolov3.weights";
+    // string yolov3_mrgd_fm_FN = WSpath + "/darknet/cfg/yolov3_merged_fmt.txt";
+    // vector<espresso::layerInfo_obj*> networkLayerInfoArr = darknetDataTransform(
+    //     &yolo_net,
+    //     (char*)yolov3_cfg_FN.c_str(),
+    //     (char*)yolov3_whts_FN.c_str(),
+    //     backend,
+    //     precision,
+    //     espresso::YOLO_DEF_FXPT_LEN,
+    //     espresso::YOLO_DEF_NUM_FRAC_BITS
+    // );
+    // vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
+    // // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
+    // string imgFN = WSpath + "/darknet/data/dog.jpg";
+    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    // image im = load_image_color((char*)imgFN.c_str(), 0, 0);
+    // image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
+    // cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
+    // // net.cfgFPGALayers(yolov3_mrgd_fm_FN);
+	// net.cfgFPGALayers();
+    // // net.printMemBWStats();
+    // net.setHardware(m_sysc_fpga_hndl);
+    // if(argc == 2)
+    // {
+    //     net.Forward(argv[1]);
+    // }
+    // else if(argc == 3)
+    // {
+    //     net.Forward(argv[1], argv[2]);
+    // }
+    // else
+    // {
+    //     net.Forward();
+    // }
+	// net.printAccelPerfAnalyStats();
+    // // string imgOut_FN = "predictions";
+    // // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
+    // // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
+    // // free_image(im);
+    // // free_image(sized);
 
 
     // MobileNetSSD
@@ -662,42 +663,43 @@ int main(int argc, char **argv)
 
 
     // RFCN-Resnet101
-    // string protoTxt = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.prototxt";
-    // string model = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.caffemodel";
-    // string mergdFMT = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101_merged.txt";
-    // vector<caffeDataParser::layerInfo_t> caffeLayerInfo = parseCaffeData(protoTxt, model);
-    // vector<int> outputLayers;
-    // // vector<int> outputLayers = getRFCN_Resnet101OutputLayers();
-    // vector<espresso::layerInfo_obj*> networkLayerInfoArr = caffeDataTransform(caffeLayerInfo, espresso::FPGA_BACKEND);
-    // if(networkLayerInfoArr[0]->layerType != espresso::INPUT)
-    // {
-    //     espresso::layerInfo_obj* layerInfo = new espresso::layerInfo_obj();
-    //     networkLayerInfoArr[0]->bottomLayerNames[0] = "Data";
-    //     layerInfo->layerName = "Data";
-    //     layerInfo->layerType = espresso::INPUT;
-    //     layerInfo->inputDepth = 3;
-    //     layerInfo->numInputRows = 224;
-    //     layerInfo->numInputCols = 224;
-    //     vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
-    //     networkLayerInfoArr.insert(it, layerInfo);
-    // }
-    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
-    // // net.cfgFPGALayers(mergdFMT);
-	// net.cfgFPGALayers();
-    // net.setHardware(m_sysc_fpga_hndl);
-    // if(argc == 2)
-    // {
-    //     net.Forward(argv[1]);
-    // }
-    // else if(argc == 3)
-    // {
-    //     net.Forward(argv[1], argv[2]);
-    // }
-    // else
-    // {
-    //     net.Forward();
-    // }
-	// net.printAccelPerfAnalyStats();
+    string protoTxt = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.prototxt";
+    string model = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.caffemodel";
+    string mergdFMT = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101_merged.txt";
+    vector<caffeDataParser::layerInfo_t> caffeLayerInfo = parseCaffeData(protoTxt, model);
+    vector<int> outputLayers;
+    // vector<int> outputLayers = getRFCN_Resnet101OutputLayers();
+    vector<espresso::layerInfo_obj*> networkLayerInfoArr = caffeDataTransform(caffeLayerInfo, espresso::FPGA_BACKEND);
+    if(networkLayerInfoArr[0]->layerType != espresso::INPUT)
+    {
+        espresso::layerInfo_obj* layerInfo = new espresso::layerInfo_obj();
+        networkLayerInfoArr[0]->bottomLayerNames[0] = "Data";
+        layerInfo->layerName = "Data";
+        layerInfo->layerType = espresso::INPUT;
+        layerInfo->inputDepth = 3;
+        layerInfo->numInputRows = 224;
+        layerInfo->numInputCols = 224;
+        vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
+        networkLayerInfoArr.insert(it, layerInfo);
+    }
+    espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    // net.cfgFPGALayers(mergdFMT);
+	net.cfgFPGALayers();
+    net.setHardware(m_sysc_fpga_hndl);
+    if(argc == 2)
+    {
+        net.Forward(argv[1]);
+    }
+    else if(argc == 3)
+    {
+        net.Forward(argv[1], argv[2]);
+    }
+    else
+    {
+        net.Forward();
+    }
+	net.printAccelPerfAnalyStats();
+
 
     return 0;
 }
