@@ -48,7 +48,8 @@ PROJECT(${TARGET_NAME})
 
 
 # BEGIN Compiler Definitions ------------------------------------------------------------------------------------------------------------------------
-add_definitions(-DCAFFE_DATA_PARSER)
+ADD_DEFINITIONS(-DCAFFE_DATA_PARSER)
+ADD_DEFINITIONS(-DSYSTEMC)
 # END Compiler Definitions --------------------------------------------------------------------------------------------------------------------------
 
 

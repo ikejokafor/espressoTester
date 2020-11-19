@@ -581,11 +581,11 @@ int main(int argc, char **argv)
 {
     string WSpath = string(getenv("WORKSPACE_PATH"));
 
-    SYSC_FPGA_hndl *m_sysc_fpga_hndl = new SYSC_FPGA_hndl();
-    if(m_sysc_fpga_hndl->software_init() == -1)
+    SYSC_FPGA_hndl* m_sysc_fpga_hndl = new SYSC_FPGA_hndl();
+    if(m_sysc_fpga_hndl->software_init(NULL) == -1)
     {
         cout << "Software Init Failed" << endl;
-        exit(1);
+        // exit(1);
     }
 
     // YOLOv3
@@ -628,11 +628,11 @@ int main(int argc, char **argv)
     //     net.Forward();
     // }
 	// net.printAccelPerfAnalyStats();
-    // // string imgOut_FN = "predictions";
-    // // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
-    // // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
-    // // free_image(im);
-    // // free_image(sized);
+    // string imgOut_FN = "predictions";
+    // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
+    // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
+    // free_image(im);
+    // free_image(sized);
 
 
     // MobileNetSSD
@@ -662,10 +662,49 @@ int main(int argc, char **argv)
     // net.Forward();
 
 
-    // RFCN-Resnet101
-    string protoTxt = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.prototxt";
-    string model = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.caffemodel";
-    string mergdFMT = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101_merged.txt";
+    // // RFCN-Resnet101
+    // string protoTxt = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.prototxt";
+    // string model = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.caffemodel";
+    // string mergdFMT = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101_merged.txt";
+    // vector<caffeDataParser::layerInfo_t> caffeLayerInfo = parseCaffeData(protoTxt, model);
+    // vector<int> outputLayers;
+    // // vector<int> outputLayers = getRFCN_Resnet101OutputLayers();
+    // vector<espresso::layerInfo_obj*> networkLayerInfoArr = caffeDataTransform(caffeLayerInfo, espresso::FPGA_BACKEND);
+    // if(networkLayerInfoArr[0]->layerType != espresso::INPUT)
+    // {
+    //     espresso::layerInfo_obj* layerInfo = new espresso::layerInfo_obj();
+    //     networkLayerInfoArr[0]->bottomLayerNames[0] = "Data";
+    //     layerInfo->layerName = "Data";
+    //     layerInfo->layerType = espresso::INPUT;
+    //     layerInfo->inputDepth = 3;
+    //     layerInfo->numInputRows = 224;
+    //     layerInfo->numInputCols = 224;
+    //     vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
+    //     networkLayerInfoArr.insert(it, layerInfo);
+    // }
+    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    // // net.cfgFPGALayers(mergdFMT);
+	// net.cfgFPGALayers();
+    // net.setHardware(m_sysc_fpga_hndl);
+    // if(argc == 2)
+    // {
+    //     net.Forward(argv[1]);
+    // }
+    // else if(argc == 3)
+    // {
+    //     net.Forward(argv[1], argv[2]);
+    // }
+    // else
+    // {
+    //     net.Forward();
+    // }
+	// net.printAccelPerfAnalyStats();
+	
+	
+	// RFCN-Resnet50
+    string protoTxt = WSpath + "/caffeModels/rfcn_resnet50/rfcn_resnet50.prototxt";
+    string model = WSpath + "/caffeModels/rfcn_resnet50/rfcn_resnet50.caffemodel";
+    string mergdFMT = WSpath + "/caffeModels/rfcn_resnet50/rfcn_resnet50_merged.txt";
     vector<caffeDataParser::layerInfo_t> caffeLayerInfo = parseCaffeData(protoTxt, model);
     vector<int> outputLayers;
     // vector<int> outputLayers = getRFCN_Resnet101OutputLayers();
