@@ -165,6 +165,25 @@ void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::
         net->m_cnn[0]->m_blob.flData = new float[numValues * sizeof(float)];
         memcpy(net->m_cnn[0]->m_blob.flData, im.data, numValues * sizeof(float));
         net->m_cnn[0]->m_precision = precision;
+        
+        
+        FILE *fd = fopen("./inputMaps.txt", "w");
+        for(int d = 0; d < net->m_cnn[0]->m_inputDepth; d++)
+        {
+            for(int r = 0; r < net->m_cnn[0]->m_numInputRows; r++)
+            {
+                for(int c = 0; c < net->m_cnn[0]->m_numInputCols; c++)
+                {
+                    int idx = index3D(net->m_cnn[0]->m_numInputRows, net->m_cnn[0]->m_numInputCols, d, r, c);
+                    fprintf(fd, "%f ", net->m_cnn[0]->m_blob.flData[idx]);
+                }
+                fprintf(fd, "\n");
+            }
+            fprintf(fd, "\n\n\n");
+        }
+        fclose(fd);
+        
+        
     }
     else
     {
@@ -301,7 +320,7 @@ void getFlPtWeights(espresso::layerInfo_obj* networkLayerInfo, layer* layer_i)
     if(networkLayerInfo->darknetNormScaleBias)
     {
         int outputDepth = networkLayerInfo->outputDepth;
-        int numFilValPerMap = networkLayerInfo->numFilterValues / networkLayerInfo->outputDepth;
+        int numFilValPerKrn = networkLayerInfo->numFilterValues / networkLayerInfo->outputDepth;
         float *flFilterData_ptr = networkLayerInfo->flFilterData;
         for (int a = 0; a < outputDepth; a++)
         {
@@ -309,12 +328,12 @@ void getFlPtWeights(espresso::layerInfo_obj* networkLayerInfo, layer* layer_i)
             float scales = layer_i->scales[a];
             float rolling_variance = layer_i->rolling_variance[a];
             float flBeta = networkLayerInfo->flBeta;
-            float flBiasData_v = flFilterData_ptr[a];
-            networkLayerInfo->flBiasData[a] = ((-rolling_mean * scales) / sqrtf(rolling_variance)) + (flBeta * scales) + flBiasData_v;
-            for (int b = 0; b < numFilValPerMap; b++)
+            float flBiasData_v = networkLayerInfo->flBiasData[a];
+            networkLayerInfo->flBiasData[a] = ((-rolling_mean * scales) + (flBiasData_v * (sqrtf(rolling_variance) + flBeta))) / (sqrtf(rolling_variance) + flBeta);
+            for (int b = 0; b < numFilValPerKrn; b++)
             {
-                int idx = index2D(numFilValPerMap, a, b);
-                flFilterData_ptr[idx] = flFilterData_ptr[idx] * scales / sqrtf(rolling_variance);
+                int idx = index2D(numFilValPerKrn, a, b);
+                flFilterData_ptr[idx] = (flFilterData_ptr[idx] * scales) / (sqrtf(rolling_variance) + flBeta);
             }
         }
     }
@@ -593,6 +612,7 @@ int main(int argc, char **argv)
     //     // exit(1);
     // }
 
+
     // YOLOv3
     espresso::precision_t precision = espresso::FLOAT;
     espresso::backend_t backend = espresso::FPGA_BACKEND;
@@ -611,8 +631,14 @@ int main(int argc, char **argv)
     );
     vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
     // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
-    string imgFN = WSpath + "/darknet/data/dog.jpg";
+    networkLayerInfoArr[1]->backend = espresso::ESPRESSO_BACKEND;
     espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    
+    
+
+
+   
+    string imgFN = WSpath + "/darknet/data/dog.jpg";
     image im = load_image_color((char*)imgFN.c_str(), 0, 0);
     image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
     cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
@@ -665,6 +691,34 @@ int main(int argc, char **argv)
     // net.printMemBWStats();
     // net.setHardware(m_sysc_fpga_hndl);
     // net.Forward();
+    
+    
+    // SSD
+    // string protoTxt = WSpath + "/caffeModels/SSD/SSD.prototxt";
+    // string model = WSpath + "/caffeModels/SSD/SSD.caffemodel";
+    // string mergdFMT = WSpath + "/caffeModels/SSD/SSD_merged.txt";
+    // vector<caffeDataParser::layerInfo_t> caffeLayerInfo = parseCaffeData(protoTxt, model);
+    // vector<int> outputLayers;
+    // // vector<int> outputLayers = getSSDOutputLayers();
+    // vector<espresso::layerInfo_obj*> networkLayerInfoArr = caffeDataTransform(caffeLayerInfo, espresso::FPGA_BACKEND);
+    // if(networkLayerInfoArr[0]->layerType != espresso::INPUT)
+    // {
+    //     espresso::layerInfo_obj* layerInfo = new espresso::layerInfo_obj();
+    //     networkLayerInfoArr[0]->bottomLayerNames[0] = "Data";
+    //     layerInfo->layerName = "Data";
+    //     layerInfo->layerType = espresso::INPUT;
+    //     layerInfo->inputDepth = 3;
+    //     layerInfo->numInputRows = 300;
+    //     layerInfo->numInputCols = 300;
+    //     vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
+    //     networkLayerInfoArr.insert(it, layerInfo);
+    // }
+    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    // net.cfgFPGALayers(mergdFMT);
+    // net.printMemBWStats();
+    // net.setHardware(m_sysc_fpga_hndl);
+    // net.Forward();
+    
 
 
     // // RFCN-Resnet101
@@ -778,6 +832,43 @@ int main(int argc, char **argv)
     // {
     //     net.Forward();
     // }
+    
+    
+    // Debug
+    // FILE *fd = fopen("yolov3.csv", "w");
+    // fprintf(fd , ",Name,Type,input channels,input dimensions,output channels,output dimensions,Kernel dimensions,Padding,Stride,group,activation\n");
+    // int maccCout = 0;
+    // int paramTot = 0;
+    // for(int i = 0; i < net.m_cnn.size(); i++)
+    // {
+    //     if(net.m_cnn[i]->m_layerType == espresso::CONVOLUTION)
+    //     {
+    //         // string act_str = (net.m_cnn[i]->m_activation == espresso::LINEAR) ? "linear" : 
+    //         // (net.m_cnn[i]->m_activation == espresso::LEAKY) ? "leaky" : "None";
+    //         // fprintf(fd , ",%s,convolution,%d,%dx%d,%d,%dx%d,%dx%d,%d,%d,%d,%s\n",
+    //         //     net.m_cnn[i]->m_layerName.c_str(), 
+    //         //     net.m_cnn[i]->m_inputDepth, net.m_cnn[i]->m_numInputRows, net.m_cnn[i]->m_numInputCols,
+    //         //     net.m_cnn[i]->m_outputDepth, net.m_cnn[i]->m_numOutputRows, net.m_cnn[i]->m_numOutputCols,
+    //         //     net.m_cnn[i]->m_numKernelRows, net.m_cnn[i]->m_numKernelCols,
+    //         //     net.m_cnn[i]->m_padding, net.m_cnn[i]->m_stride,net.m_cnn[i]->m_group, act_str.c_str()
+    //         // );
+    //         maccCout += (net.m_cnn[i]->m_outputDepth * net.m_cnn[i]->m_numOutputRows * net.m_cnn[i]->m_numOutputCols);
+    //         paramTot += (net.m_cnn[i]->m_outputDepth * net.m_cnn[i]->m_inputDepth * net.m_cnn[i]->m_numKernelRows * net.m_cnn[i]->m_numKernelCols);
+    //         
+    //     }
+    //     // if(net.m_cnn[i]->m_layerType == espresso::RESIDUAL)
+    //     // {
+    //     //     fprintf(fd , ",%s,shortcut,%d,%dx%d,%d,%dx%d,-,-,-,-,-\n",
+    //     //         net.m_cnn[i]->m_layerName.c_str(), 
+    //     //         net.m_cnn[i]->m_inputDepth, net.m_cnn[i]->m_numInputRows, net.m_cnn[i]->m_numInputCols,
+    //     //         net.m_cnn[i]->m_outputDepth, net.m_cnn[i]->m_numOutputRows, net.m_cnn[i]->m_numOutputCols
+    //     //     );
+    //     // }
+    // }
+    // printf("MACC: %d, PARAM: %d\n", maccCout, paramTot);
+    // exit(0);
+    // fclose(fd);
+    // exit(0);
 
 
     return 0;

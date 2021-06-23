@@ -1,0 +1,1 @@
+fixed bug in folding scale, bias, variance, and beta into weights and bias
