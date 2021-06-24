@@ -631,7 +631,6 @@ int main(int argc, char **argv)
     );
     vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
     // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
-    networkLayerInfoArr[1]->backend = espresso::ESPRESSO_BACKEND;
     espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
     
     
