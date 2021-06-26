@@ -155,6 +155,7 @@ vector<espresso::layerInfo_obj*> caffeDataTransform(vector<caffeDataParser::laye
 }
 #endif
 
+
 void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::layerInfo_obj* networkLayerInfo, espresso::precision_t precision)
 {
     int numValues = networkLayerInfo->numInputRows * networkLayerInfo->numInputCols * networkLayerInfo->inputDepth;
@@ -631,6 +632,9 @@ int main(int argc, char **argv)
     );
     vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
     // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
+    // networkLayerInfoArr[1]->backend = espresso::ESPRESSO_BACKEND;
+    // networkLayerInfoArr[2]->backend = espresso::ESPRESSO_BACKEND;
+    // networkLayerInfoArr[3]->backend = espresso::ESPRESSO_BACKEND;
     espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
     
     
