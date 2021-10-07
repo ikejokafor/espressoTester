@@ -606,13 +606,14 @@ int main(int argc, char **argv)
 {
     string WSpath = string(getenv("WORKSPACE_PATH"));
 
+#ifdef SYSTEMC
     SYSC_FPGA_hndl* m_sysc_fpga_hndl = new SYSC_FPGA_hndl();
-    // if(m_sysc_fpga_hndl->software_init(NULL) == -1)
-    // {
-    //     cout << "Software Init Failed" << endl;
-    //     // exit(1);
-    // }
-
+    if(m_sysc_fpga_hndl->software_init(NULL) == -1)
+    {
+        cout << "Software Init Failed" << endl;
+        exit(1);
+    }
+#endif
 
     // YOLOv3
     espresso::precision_t precision = espresso::FLOAT;
@@ -632,9 +633,6 @@ int main(int argc, char **argv)
     );
     vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
     // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
-    // networkLayerInfoArr[1]->backend = espresso::ESPRESSO_BACKEND;
-    // networkLayerInfoArr[2]->backend = espresso::ESPRESSO_BACKEND;
-    // networkLayerInfoArr[3]->backend = espresso::ESPRESSO_BACKEND;
     espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
     
     
@@ -645,8 +643,12 @@ int main(int argc, char **argv)
     image im = load_image_color((char*)imgFN.c_str(), 0, 0);
     image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
     cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
+    
     // net.cfgFPGALayers(yolov3_mrgd_fm_FN);
+    
 	net.cfgFPGALayers();
+
+    
     // net.printMemBWStats();
     net.setHardware(m_sysc_fpga_hndl);
     if(argc == 2)
@@ -659,14 +661,22 @@ int main(int argc, char **argv)
     }
     else
     {
-        net.Forward();
+        int i = 0;
+        while(true)
+        {
+            FILE* fd = fopen("./progress.txt", "w");
+            fprintf(fd, "%d\n", i);
+            fflush(fd);
+            net.Forward();
+            i++;
+        }
     }
-	net.printAccelPerfAnalyStats();
-    string imgOut_FN = "predictions";
-    string cocoNames_FN = WSpath + "/darknet/data/coco.names";
-    post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
-    free_image(im);
-    free_image(sized);
+	// net.printAccelPerfAnalyStats();
+    // string imgOut_FN = "predictions";
+    // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
+    // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
+    // free_image(im);
+    // free_image(sized);
 
 
     // MobileNetSSD

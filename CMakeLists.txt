@@ -117,7 +117,7 @@ SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
 # BEGIN Build dependencies --------------------------------------------------------------------------------------------------------------------------
 ADD_DEPENDENCIES(${TARGET_NAME} fixedPoint)
 ADD_DEPENDENCIES(${TARGET_NAME} network)
-ADD_DEPENDENCIES(${TARGET_NAME} myNetProto)
+ADD_DEPENDENCIES(${TARGET_NAME} syscNetProto)
 ADD_DEPENDENCIES(${TARGET_NAME} espresso)
 ADD_DEPENDENCIES(${TARGET_NAME} sysc_fpga_shim)
 ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
@@ -179,7 +179,7 @@ TARGET_INCLUDE_DIRECTORIES(${TARGET_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/../SYSC_FPGA_shim/inc/
     ${PROJECT_SOURCE_DIR}/../cnn_layer_accel/model/inc/
     ${PROJECT_SOURCE_DIR}/../network/inc/
-    ${PROJECT_SOURCE_DIR}/../myNetProto/inc/
+    ${PROJECT_SOURCE_DIR}/../syscNetProto/inc/
 )
 # END Include directories ---------------------------------------------------------------------------------------------------------------------------
 
@@ -204,7 +204,7 @@ else()
 		-L${PROJECT_SOURCE_DIR}/../fixedPoint/build/${BUILD_DIR_SUFFIX}/
 		-L${PROJECT_SOURCE_DIR}/../espresso/build/${BUILD_DIR_SUFFIX}/
         -L${PROJECT_SOURCE_DIR}/../network/build/${BUILD_DIR_SUFFIX}/
-        -L${PROJECT_SOURCE_DIR}/../myNetProto/build/${BUILD_DIR_SUFFIX}/
+        -L${PROJECT_SOURCE_DIR}/../syscNetProto/build/${BUILD_DIR_SUFFIX}/
         -L${PROJECT_SOURCE_DIR}/../SYSC_FPGA_shim/build/${BUILD_DIR_SUFFIX}/
         -L${PROJECT_SOURCE_DIR}/../caffeDataParser/build/${BUILD_DIR_SUFFIX}/
 		#-lcaffe
@@ -219,7 +219,7 @@ else()
         sysc_fpga_shim
         fixedPoint
         network
-        myNetProto
+        syscNetProto
         caffeDataParser
         -lprotobuf
         -lpthread
