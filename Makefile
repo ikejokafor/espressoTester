@@ -10,6 +10,7 @@ CWD = $(notdir $(shell pwd))
 CWD_A = $(shell pwd)
 BUILD_DIR_SUFFIX = debug
 
+
 # define the C compiler to use
 CC = g++
 
@@ -67,17 +68,20 @@ LFLAGS =	-L/usr/lib/ \
 # define any libraries to link into executable:
 #   if I want to link in libraries (libx.so or libx.a) I use the -llibname 
 #   option, something like (this will link in libmylib.so and libm.so:
-LIBS =  -ldarknet \
-		-lutil \
-		-lespresso \
-		-lSYSC_FPGA_shim \
+# -lcaffeDataParser
+# -lprotobuf
+
+# -ldarknet \
+# -lnetwork \
+
+# -lpthread \
+# -lm \
+# -lsyscNetProto \
+# -lSYSC_FPGA_shim \
+
+LIBS =  -lespresso \
 		-lfixedPoint \
-		-lnetwork \
-		-lsyscNetProto \
-		-lpthread \
-		-lm
-		# -lcaffeDataParser
-		# -lprotobuf
+        -lstdc++
 
 
 # define the C source files
