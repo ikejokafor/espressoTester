@@ -48,7 +48,7 @@ PROJECT(${TARGET_NAME})
 
 
 # BEGIN Compiler Definitions ------------------------------------------------------------------------------------------------------------------------
-ADD_DEFINITIONS(-DCAFFE_DATA_PARSER)
+# ADD_DEFINITIONS(-DCAFFE_DATA_PARSER)
 ADD_DEFINITIONS(-DSYSTEMC)
 # END Compiler Definitions --------------------------------------------------------------------------------------------------------------------------
 
@@ -220,7 +220,7 @@ else()
         fixedPoint
         network
         syscNetProto
-        caffeDataParser
+        # caffeDataParser
         #-lprotobuf
         -lpthread
         #RL

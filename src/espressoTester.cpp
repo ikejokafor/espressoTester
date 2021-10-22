@@ -168,21 +168,21 @@ void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::
         net->m_cnn[0]->m_precision = precision;
         
         
-        FILE *fd = fopen("./inputMaps.txt", "w");
-        for(int d = 0; d < net->m_cnn[0]->m_inputDepth; d++)
-        {
-            for(int r = 0; r < net->m_cnn[0]->m_numInputRows; r++)
-            {
-                for(int c = 0; c < net->m_cnn[0]->m_numInputCols; c++)
-                {
-                    int idx = index3D(net->m_cnn[0]->m_numInputRows, net->m_cnn[0]->m_numInputCols, d, r, c);
-                    fprintf(fd, "%f ", net->m_cnn[0]->m_blob.flData[idx]);
-                }
-                fprintf(fd, "\n");
-            }
-            fprintf(fd, "\n\n\n");
-        }
-        fclose(fd);
+        // FILE *fd = fopen("./inputMaps.txt", "w");
+        // for(int d = 0; d < net->m_cnn[0]->m_inputDepth; d++)
+        // {
+        //     for(int r = 0; r < net->m_cnn[0]->m_numInputRows; r++)
+        //     {
+        //         for(int c = 0; c < net->m_cnn[0]->m_numInputCols; c++)
+        //         {
+        //             int idx = index3D(net->m_cnn[0]->m_numInputRows, net->m_cnn[0]->m_numInputCols, d, r, c);
+        //             fprintf(fd, "%f ", net->m_cnn[0]->m_blob.flData[idx]);
+        //         }
+        //         fprintf(fd, "\n");
+        //     }
+        //     fprintf(fd, "\n\n\n");
+        // }
+        // fclose(fd);
         
         
     }
@@ -601,6 +601,18 @@ void setLayerConnections(vector<espresso::layerInfo_obj*>& networkLayerInfoArr)
     }
 }
 
+uint32_t nextPow2(uint32_t v)
+{
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;    
+}
+
 
 int main(int argc, char **argv)
 {
@@ -611,7 +623,7 @@ int main(int argc, char **argv)
     if(m_sysc_fpga_hndl->software_init(NULL) == -1)
     {
         cout << "Software Init Failed" << endl;
-        exit(1);
+        // exit(1);
     }
 #endif
 
@@ -661,14 +673,33 @@ int main(int argc, char **argv)
     }
     else
     {
-        int i = 0;
-        while(true)
+        uint32_t _K_3_S   = K_3_S; 
+        uint32_t _K_1_S   = K_1_S;
+        uint32_t _MX_3X3_S = MX_3X3_S;
+        uint32_t _MX_1X1_S = MX_1X1_S;
+        uint32_t _MAX_QUAD_PER_AWP = ::MAX_QUAD_PER_AWP;        
+        uint32_t i = 0;
+        while(i < 16)
         {
             FILE* fd = fopen("./progress.txt", "w");
             fprintf(fd, "%d\n", i);
             fflush(fd);
             net.Forward();
+            net.printAccelPerfAnalyStats();       
             i++;
+
+
+            _K_3_S              = nextPow2(++_K_3_S);
+            _K_1_S              = nextPow2(++_K_1_S);
+            _MX_3X3_S           = nextPow2(++_MX_3X3_S);
+            _MX_1X1_S           = nextPow2(++_MX_1X1_S);
+            _MAX_QUAD_PER_AWP   = nextPow2(++_MAX_QUAD_PER_AWP);
+
+            K_3_S = _K_3_S;
+            K_1_S = _K_1_S;
+            MX_3X3_S = min(4, (int)_MX_3X3_S);
+            MX_1X1_S = min(4, (int)_MX_1X1_S);
+            MAX_QUAD_PER_AWP = min(32, (int)_MAX_QUAD_PER_AWP);            
         }
     }
 	// net.printAccelPerfAnalyStats();

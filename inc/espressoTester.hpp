@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 // Project includes
+#include "util.hpp"
 #include "CNN_Network.hpp"
 #ifdef CAFFE_DATA_PARSER
 #include "caffeDataParser.hpp"
