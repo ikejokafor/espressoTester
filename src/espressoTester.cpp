@@ -645,6 +645,8 @@ int main(int argc, char **argv)
     );
     vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
     // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
+    networkLayerInfoArr[1]->first = true;
+    networkLayerInfoArr[106]->last = true;
     espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
     
     
@@ -684,22 +686,24 @@ int main(int argc, char **argv)
             FILE* fd = fopen("./progress.txt", "w");
             fprintf(fd, "%d\n", i);
             fflush(fd);
+            fclose(fd);
             net.Forward();
-            net.printAccelPerfAnalyStats();       
+            
+            // net.printAccelPerfAnalyStats();       
+            // _K_3_S              = nextPow2(++_K_3_S);
+            // _K_1_S              = nextPow2(++_K_1_S);
+            // _MX_3X3_S           = nextPow2(++_MX_3X3_S);
+            // _MX_1X1_S           = nextPow2(++_MX_1X1_S);
+            // _MAX_QUAD_PER_AWP   = nextPow2(++_MAX_QUAD_PER_AWP);
+            // 
+            // K_3_S = min(16, (int)_K_3_S);
+            // K_1_S = min(16, (int)_K_1_S);
+            // MX_3X3_S = min(4, (int)_MX_3X3_S);
+            // MX_1X1_S = min(4, (int)_MX_1X1_S);
+            // MAX_QUAD_PER_AWP = min(32, (int)_MAX_QUAD_PER_AWP);
+
             i++;
-
-
-            _K_3_S              = nextPow2(++_K_3_S);
-            _K_1_S              = nextPow2(++_K_1_S);
-            _MX_3X3_S           = nextPow2(++_MX_3X3_S);
-            _MX_1X1_S           = nextPow2(++_MX_1X1_S);
-            _MAX_QUAD_PER_AWP   = nextPow2(++_MAX_QUAD_PER_AWP);
-
-            K_3_S = _K_3_S;
-            K_1_S = _K_1_S;
-            MX_3X3_S = min(4, (int)_MX_3X3_S);
-            MX_1X1_S = min(4, (int)_MX_1X1_S);
-            MAX_QUAD_PER_AWP = min(32, (int)_MAX_QUAD_PER_AWP);            
+            break;
         }
     }
 	// net.printAccelPerfAnalyStats();
