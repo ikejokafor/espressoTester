@@ -159,11 +159,8 @@ vector<espresso::layerInfo_obj*> caffeDataTransform(vector<caffeDataParser::laye
 void cfgInputLayer(const image& im, espresso::CNN_Network* net, const espresso::layerInfo_obj* networkLayerInfo, espresso::precision_t precision)
 {
     int numValues = networkLayerInfo->numInputRows * networkLayerInfo->numInputCols * networkLayerInfo->inputDepth;
-    net->m_cnn[0]->m_blob.flData = new float[numValues];
-    net->m_cnn[0]->m_blob.fxData = new fixedPoint_t[numValues];
-    if (precision == espresso::FLOAT)
+    if(precision == espresso::FLOAT)
     {
-        net->m_cnn[0]->m_blob.flData = new float[numValues * sizeof(float)];
         memcpy(net->m_cnn[0]->m_blob.flData, im.data, numValues * sizeof(float));
         net->m_cnn[0]->m_precision = precision;
         
@@ -617,7 +614,7 @@ uint32_t nextPow2(uint32_t v)
 int main(int argc, char **argv)
 {
     string WSpath = string(getenv("WORKSPACE_PATH"));
-
+    string netName;
 #ifdef SYSTEMC
     SYSC_FPGA_hndl* m_sysc_fpga_hndl = new SYSC_FPGA_hndl();
     if(m_sysc_fpga_hndl->software_init(NULL) == -1)
@@ -626,8 +623,8 @@ int main(int argc, char **argv)
         // exit(1);
     }
 #endif
-
     // YOLOv3
+    netName = "YOLOv3";
     espresso::precision_t precision = espresso::FLOAT;
     espresso::backend_t backend = espresso::FPGA_BACKEND;
     network* yolo_net = NULL;
@@ -647,66 +644,14 @@ int main(int argc, char **argv)
     // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
     networkLayerInfoArr[1]->first = true;
     networkLayerInfoArr[106]->last = true;
-    espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
-    
-    
-
-
-   
+    espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
     string imgFN = WSpath + "/darknet/data/dog.jpg";
     image im = load_image_color((char*)imgFN.c_str(), 0, 0);
     image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
     cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
-    
-    // net.cfgFPGALayers(yolov3_mrgd_fm_FN);
-    
-	net.cfgFPGALayers();
-
-    
-    // net.printMemBWStats();
+    // net.cfgFPGALayers(mergdFMT);
+    net.cfgFPGALayers();
     net.setHardware(m_sysc_fpga_hndl);
-    if(argc == 2)
-    {
-        net.Forward(argv[1]);
-    }
-    else if(argc == 3)
-    {
-        net.Forward(argv[1], argv[2]);
-    }
-    else
-    {
-        uint32_t _K_3_S   = K_3_S; 
-        uint32_t _K_1_S   = K_1_S;
-        uint32_t _MX_3X3_S = MX_3X3_S;
-        uint32_t _MX_1X1_S = MX_1X1_S;
-        uint32_t _MAX_QUAD_PER_AWP = ::MAX_QUAD_PER_AWP;        
-        uint32_t i = 0;
-        while(i < 16)
-        {
-            FILE* fd = fopen("./progress.txt", "w");
-            fprintf(fd, "%d\n", i);
-            fflush(fd);
-            fclose(fd);
-            net.Forward();
-            
-            // net.printAccelPerfAnalyStats();       
-            // _K_3_S              = nextPow2(++_K_3_S);
-            // _K_1_S              = nextPow2(++_K_1_S);
-            // _MX_3X3_S           = nextPow2(++_MX_3X3_S);
-            // _MX_1X1_S           = nextPow2(++_MX_1X1_S);
-            // _MAX_QUAD_PER_AWP   = nextPow2(++_MAX_QUAD_PER_AWP);
-            // 
-            // K_3_S = min(16, (int)_K_3_S);
-            // K_1_S = min(16, (int)_K_1_S);
-            // MX_3X3_S = min(4, (int)_MX_3X3_S);
-            // MX_1X1_S = min(4, (int)_MX_1X1_S);
-            // MAX_QUAD_PER_AWP = min(32, (int)_MAX_QUAD_PER_AWP);
-
-            i++;
-            break;
-        }
-    }
-	// net.printAccelPerfAnalyStats();
     // string imgOut_FN = "predictions";
     // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
     // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
@@ -715,6 +660,7 @@ int main(int argc, char **argv)
 
 
     // MobileNetSSD
+    // netName = "MobileNetSSD";
     // string protoTxt = WSpath + "/caffeModels/mobileNetSSD/mobileNetSSD.prototxt";
     // string model = WSpath + "/caffeModels/mobileNetSSD/mobileNetSSD.caffemodel";
     // string mergdFMT = WSpath + "/caffeModels/mobileNetSSD/mobileNetSSD_merged.txt";
@@ -734,14 +680,16 @@ int main(int argc, char **argv)
     //     vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
     //     networkLayerInfoArr.insert(it, layerInfo);
     // }
-    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    // espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
     // net.cfgFPGALayers(mergdFMT);
+    // // net.cfgFPGALayers();
     // net.printMemBWStats();
     // net.setHardware(m_sysc_fpga_hndl);
     // net.Forward();
     
     
     // SSD
+    // netName = "SSD";
     // string protoTxt = WSpath + "/caffeModels/SSD/SSD.prototxt";
     // string model = WSpath + "/caffeModels/SSD/SSD.caffemodel";
     // string mergdFMT = WSpath + "/caffeModels/SSD/SSD_merged.txt";
@@ -761,8 +709,9 @@ int main(int argc, char **argv)
     //     vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
     //     networkLayerInfoArr.insert(it, layerInfo);
     // }
-    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    // espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
     // net.cfgFPGALayers(mergdFMT);
+    // // net.cfgFPGALayers();
     // net.printMemBWStats();
     // net.setHardware(m_sysc_fpga_hndl);
     // net.Forward();
@@ -770,6 +719,7 @@ int main(int argc, char **argv)
 
 
     // // RFCN-Resnet101
+    // netName = "RFCN-Resnet101";
     // string protoTxt = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.prototxt";
     // string model = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.caffemodel";
     // string mergdFMT = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101_merged.txt";
@@ -789,26 +739,15 @@ int main(int argc, char **argv)
     //     vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
     //     networkLayerInfoArr.insert(it, layerInfo);
     // }
-    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    // espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
     // // net.cfgFPGALayers(mergdFMT);
 	// net.cfgFPGALayers();
     // net.setHardware(m_sysc_fpga_hndl);
-    // if(argc == 2)
-    // {
-    //     net.Forward(argv[1]);
-    // }
-    // else if(argc == 3)
-    // {
-    //     net.Forward(argv[1], argv[2]);
-    // }
-    // else
-    // {
-    //     net.Forward();
-    // }
-	// net.printAccelPerfAnalyStats();
+
 	
 	
 	// // RFCN-Resnet50
+    // netName = "RFCN-Resnet50";
     // string protoTxt = WSpath + "/caffeModels/rfcn_resnet50/rfcn_resnet50.prototxt";
     // string model = WSpath + "/caffeModels/rfcn_resnet50/rfcn_resnet50.caffemodel";
     // string mergdFMT = WSpath + "/caffeModels/rfcn_resnet50/rfcn_resnet50_merged.txt";
@@ -828,26 +767,14 @@ int main(int argc, char **argv)
     //     vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
     //     networkLayerInfoArr.insert(it, layerInfo);
     // }
-    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
+    // espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
     // // net.cfgFPGALayers(mergdFMT);
-	// net.cfgFPGALayers();
+    // net.cfgFPGALayers();
     // net.setHardware(m_sysc_fpga_hndl);
-    // if(argc == 2)
-    // {
-    //     net.Forward(argv[1]);
-    // }
-    // else if(argc == 3)
-    // {
-    //     net.Forward(argv[1], argv[2]);
-    // }
-    // else
-    // {
-    //     net.Forward();
-    // }
-	// net.printAccelPerfAnalyStats();
     
     
     // // Resnet50
+    // netName = "Resnet50";
     // string protoTxt = WSpath + "/caffeModels/resnet50/resnet50.prototxt";
     // string model = WSpath + "/caffeModels/resnet50/resnet50.caffemodel";
     // vector<caffeDataParser::layerInfo_t> caffeLayerInfo = parseCaffeData(protoTxt, model);
@@ -865,58 +792,54 @@ int main(int argc, char **argv)
     //     vector<espresso::layerInfo_obj*>::iterator it = networkLayerInfoArr.begin();
     //     networkLayerInfoArr.insert(it, layerInfo);
     // }
-    // espresso::CNN_Network net(networkLayerInfoArr, outputLayers);
-	// net.cfgFPGALayers();
+    // espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
+    // net.cfgFPGALayers();
     // net.setHardware(m_sysc_fpga_hndl);
-    // if(argc == 2)
-    // {
-    //     net.Forward(argv[1]);
-    // }
-    // else if(argc == 3)
-    // {
-    //     net.Forward(argv[1], argv[2]);
-    // }
-    // else
-    // {
-    //     net.Forward();
-    // }
     
-    
-    // Debug
-    // FILE *fd = fopen("yolov3.csv", "w");
-    // fprintf(fd , ",Name,Type,input channels,input dimensions,output channels,output dimensions,Kernel dimensions,Padding,Stride,group,activation\n");
-    // int maccCout = 0;
-    // int paramTot = 0;
-    // for(int i = 0; i < net.m_cnn.size(); i++)
-    // {
-    //     if(net.m_cnn[i]->m_layerType == espresso::CONVOLUTION)
-    //     {
-    //         // string act_str = (net.m_cnn[i]->m_activation == espresso::LINEAR) ? "linear" : 
-    //         // (net.m_cnn[i]->m_activation == espresso::LEAKY) ? "leaky" : "None";
-    //         // fprintf(fd , ",%s,convolution,%d,%dx%d,%d,%dx%d,%dx%d,%d,%d,%d,%s\n",
-    //         //     net.m_cnn[i]->m_layerName.c_str(), 
-    //         //     net.m_cnn[i]->m_inputDepth, net.m_cnn[i]->m_numInputRows, net.m_cnn[i]->m_numInputCols,
-    //         //     net.m_cnn[i]->m_outputDepth, net.m_cnn[i]->m_numOutputRows, net.m_cnn[i]->m_numOutputCols,
-    //         //     net.m_cnn[i]->m_numKernelRows, net.m_cnn[i]->m_numKernelCols,
-    //         //     net.m_cnn[i]->m_padding, net.m_cnn[i]->m_stride,net.m_cnn[i]->m_group, act_str.c_str()
-    //         // );
-    //         maccCout += (net.m_cnn[i]->m_outputDepth * net.m_cnn[i]->m_numOutputRows * net.m_cnn[i]->m_numOutputCols);
-    //         paramTot += (net.m_cnn[i]->m_outputDepth * net.m_cnn[i]->m_inputDepth * net.m_cnn[i]->m_numKernelRows * net.m_cnn[i]->m_numKernelCols);
-    //         
-    //     }
-    //     // if(net.m_cnn[i]->m_layerType == espresso::RESIDUAL)
-    //     // {
-    //     //     fprintf(fd , ",%s,shortcut,%d,%dx%d,%d,%dx%d,-,-,-,-,-\n",
-    //     //         net.m_cnn[i]->m_layerName.c_str(), 
-    //     //         net.m_cnn[i]->m_inputDepth, net.m_cnn[i]->m_numInputRows, net.m_cnn[i]->m_numInputCols,
-    //     //         net.m_cnn[i]->m_outputDepth, net.m_cnn[i]->m_numOutputRows, net.m_cnn[i]->m_numOutputCols
-    //     //     );
-    //     // }
-    // }
-    // printf("MACC: %d, PARAM: %d\n", maccCout, paramTot);
-    // exit(0);
-    // fclose(fd);
-    // exit(0);
+
+    if(argc == 2)
+    {
+        net.Forward(argv[1]);
+    }
+    else if(argc == 3)
+    {
+        net.Forward(argv[1], argv[2]);
+    }
+    else
+    {
+        // uint32_t _K_3_S   = K_3_S; 
+        // uint32_t _K_1_S   = K_1_S;
+        // uint32_t _MX_3X3_S = MX_3X3_S;
+        // uint32_t _MX_1X1_S = MX_1X1_S;
+        // uint32_t _MAX_QUAD_PER_AWP = ::MAX_QUAD_PER_AWP;        
+        // uint32_t i = 0;
+        // while(i < 16)
+        // {
+        //     FILE* fd = fopen("./progress.txt", "w");
+        //     fprintf(fd, "%d\n", i);
+        //     fflush(fd);
+        //     fclose(fd);
+        //     net.Forward();
+        //     
+        //     net.printAccelPerfAnalyStats();       
+        //     // _K_3_S              = nextPow2(++_K_3_S);
+        //     // _K_1_S              = nextPow2(++_K_1_S);
+        //     // _MX_3X3_S           = nextPow2(++_MX_3X3_S);
+        //     // _MX_1X1_S           = nextPow2(++_MX_1X1_S);
+        //     // _MAX_QUAD_PER_AWP   = nextPow2(++_MAX_QUAD_PER_AWP);
+        //     // 
+        //     // K_3_S = min(16, (int)_K_3_S);
+        //     // K_1_S = min(16, (int)_K_1_S);
+        //     // MX_3X3_S = min(4, (int)_MX_3X3_S);
+        //     // MX_1X1_S = min(4, (int)_MX_1X1_S);
+        //     // MAX_QUAD_PER_AWP = min(32, (int)_MAX_QUAD_PER_AWP);
+        // 
+        //     i++;
+        //     break;
+        // }
+        net.writeLayIt();
+    }
+
 
 
     return 0;

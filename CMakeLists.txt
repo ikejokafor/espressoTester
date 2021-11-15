@@ -48,7 +48,7 @@ PROJECT(${TARGET_NAME})
 
 
 # BEGIN Compiler Definitions ------------------------------------------------------------------------------------------------------------------------
-# ADD_DEFINITIONS(-DCAFFE_DATA_PARSER)
+ADD_DEFINITIONS(-DCAFFE_DATA_PARSER)
 ADD_DEFINITIONS(-DSYSTEMC)
 # END Compiler Definitions --------------------------------------------------------------------------------------------------------------------------
 
@@ -120,7 +120,7 @@ ADD_DEPENDENCIES(${TARGET_NAME} network)
 ADD_DEPENDENCIES(${TARGET_NAME} syscNetProto)
 ADD_DEPENDENCIES(${TARGET_NAME} espresso)
 ADD_DEPENDENCIES(${TARGET_NAME} sysc_fpga_shim)
-# ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
+ADD_DEPENDENCIES(${TARGET_NAME} caffeDataParser)
 # ADD_DEPENDENCIES(${TARGET_NAME} darknet_arcv)
 # ADD_DEPENDENCIES(${TARGET_NAME} util)
 # ADD_DEPENDENCIES(${TARGET_NAME} caffeClassifier)
@@ -220,7 +220,7 @@ else()
         fixedPoint
         network
         syscNetProto
-        # caffeDataParser
+        caffeDataParser
         #-lprotobuf
         -lpthread
         #RL
