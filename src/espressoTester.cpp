@@ -620,46 +620,49 @@ int main(int argc, char **argv)
     if(m_sysc_fpga_hndl->software_init(NULL) == -1)
     {
         cout << "Software Init Failed" << endl;
-        // exit(1);
+        exit(1);
     }
 #endif
     // YOLOv3
-    netName = "YOLOv3";
-    espresso::precision_t precision = espresso::FLOAT;
-    espresso::backend_t backend = espresso::FPGA_BACKEND;
-    network* yolo_net = NULL;
-    string yolov3_cfg_FN = WSpath + "/darknet/cfg/yolov3.cfg";
-    string yolov3_whts_FN = WSpath + "/darknet/cfg/yolov3.weights";
-    string yolov3_mrgd_fm_FN = WSpath + "/darknet/cfg/yolov3_merged_fmt.txt";
-    vector<espresso::layerInfo_obj*> networkLayerInfoArr = darknetDataTransform(
-        &yolo_net,
-        (char*)yolov3_cfg_FN.c_str(),
-        (char*)yolov3_whts_FN.c_str(),
-        backend,
-        precision,
-        espresso::YOLO_DEF_FXPT_LEN,
-        espresso::YOLO_DEF_NUM_FRAC_BITS
-    );
-    vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
-    // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
-    networkLayerInfoArr[1]->first = true;
-    networkLayerInfoArr[106]->last = true;
-    espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
-    string imgFN = WSpath + "/darknet/data/dog.jpg";
-    image im = load_image_color((char*)imgFN.c_str(), 0, 0);
-    image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
-    cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
-    // net.cfgFPGALayers(mergdFMT);
-    net.cfgFPGALayers();
-    net.setHardware(m_sysc_fpga_hndl);
-    // string imgOut_FN = "predictions";
-    // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
-    // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
-    // free_image(im);
-    // free_image(sized);
+    // netName = "YOLOv3";
+    // espresso::precision_t precision = espresso::FLOAT;
+    // espresso::backend_t backend = espresso::FPGA_BACKEND;
+    // network* yolo_net = NULL;
+    // string yolov3_cfg_FN = WSpath + "/darknet/cfg/yolov3.cfg";
+    // string yolov3_whts_FN = WSpath + "/darknet/cfg/yolov3.weights";
+    // string yolov3_mrgd_fm_FN = WSpath + "/darknet/cfg/yolov3_merged_fmt.txt";
+    // vector<espresso::layerInfo_obj*> networkLayerInfoArr = darknetDataTransform(
+    //     &yolo_net,
+    //     (char*)yolov3_cfg_FN.c_str(),
+    //     (char*)yolov3_whts_FN.c_str(),
+    //     backend,
+    //     precision,
+    //     espresso::YOLO_DEF_FXPT_LEN,
+    //     espresso::YOLO_DEF_NUM_FRAC_BITS
+    // );
+    // vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
+    // // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
+    // networkLayerInfoArr[1]->first = true;
+    // networkLayerInfoArr[106]->last = true;
+    // espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
+    // string imgFN = WSpath + "/darknet/data/dog.jpg";
+    // image im = load_image_color((char*)imgFN.c_str(), 0, 0);
+    // image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
+    // cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
+    // // net.cfgFPGALayers(mergdFMT);
+    // net.cfgFPGALayers();
+    // net.setHardware(m_sysc_fpga_hndl);
+    // // string imgOut_FN = "predictions";
+    // // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
+    // // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
+    // // free_image(im);
+    // // free_image(sized);
 
 
-    // MobileNetSSD
+    // // MobileNetSSD
+    // cout << "FIXME - " << __FILE__ << ":" << __LINE__ << endl;
+    // cout << "\t some caffe layers are wont be properly connected" << endl;
+    // exit(1);
     // netName = "MobileNetSSD";
     // string protoTxt = WSpath + "/caffeModels/mobileNetSSD/mobileNetSSD.prototxt";
     // string model = WSpath + "/caffeModels/mobileNetSSD/mobileNetSSD.caffemodel";
@@ -681,14 +684,17 @@ int main(int argc, char **argv)
     //     networkLayerInfoArr.insert(it, layerInfo);
     // }
     // espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
-    // net.cfgFPGALayers(mergdFMT);
-    // // net.cfgFPGALayers();
-    // net.printMemBWStats();
+    // // net.cfgFPGALayers(mergdFMT);
+    // net.cfgFPGALayers();
+    // // net.printMemBWStats();
     // net.setHardware(m_sysc_fpga_hndl);
-    // net.Forward();
+    // // net.Forward();
     
     
-    // SSD
+    // // SSD
+    // cout << "FIXME - " << __FILE__ << ":" << __LINE__ << endl;
+    // cout << "\t some caffe layers are wont be properly connected" << endl;
+    // exit(1);
     // netName = "SSD";
     // string protoTxt = WSpath + "/caffeModels/SSD/SSD.prototxt";
     // string model = WSpath + "/caffeModels/SSD/SSD.caffemodel";
@@ -719,6 +725,9 @@ int main(int argc, char **argv)
 
 
     // // RFCN-Resnet101
+    // cout << "FIXME - " << __FILE__ << ":" << __LINE__ << endl;
+    // cout << "\t some caffe layers are wont be properly connected" << endl;
+    // exit(1);
     // netName = "RFCN-Resnet101";
     // string protoTxt = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.prototxt";
     // string model = WSpath + "/caffeModels/rfcn_resnet101/rfcn_resnet101.caffemodel";
@@ -747,6 +756,9 @@ int main(int argc, char **argv)
 	
 	
 	// // RFCN-Resnet50
+    // cout << "FIXME - " << __FILE__ << ":" << __LINE__ << endl;
+    // cout << "\t some caffe layers are wont be properly connected" << endl;
+    // exit(1);    
     // netName = "RFCN-Resnet50";
     // string protoTxt = WSpath + "/caffeModels/rfcn_resnet50/rfcn_resnet50.prototxt";
     // string model = WSpath + "/caffeModels/rfcn_resnet50/rfcn_resnet50.caffemodel";
@@ -774,6 +786,9 @@ int main(int argc, char **argv)
     
     
     // // Resnet50
+    // cout << "FIXME - " << __FILE__ << ":" << __LINE__ << endl;
+    // cout << "\t some caffe layers are wont be properly connected" << endl;
+    // exit(1);    
     // netName = "Resnet50";
     // string protoTxt = WSpath + "/caffeModels/resnet50/resnet50.prototxt";
     // string model = WSpath + "/caffeModels/resnet50/resnet50.caffemodel";
@@ -838,6 +853,7 @@ int main(int argc, char **argv)
         //     break;
         // }
         net.writeLayIt();
+        // net.Forward();
     }
 
 

@@ -208,7 +208,6 @@ else()
         -L${PROJECT_SOURCE_DIR}/../SYSC_FPGA_shim/build/${BUILD_DIR_SUFFIX}/
         -L${PROJECT_SOURCE_DIR}/../caffeDataParser/build/${BUILD_DIR_SUFFIX}/
 		#-lcaffe
-        #-lprotobuf
         #-lopencv_core
         #-lopencv_highgui
         #-lopencv_imgproc
@@ -221,7 +220,7 @@ else()
         network
         syscNetProto
         caffeDataParser
-        #-lprotobuf
+        -lprotobuf
         -lpthread
         #RL
 )
