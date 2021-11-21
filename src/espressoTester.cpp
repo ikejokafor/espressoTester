@@ -612,257 +612,7 @@ void setLayerConnections(vector<espresso::layerInfo_obj*>& networkLayerInfoArr)
 }
 
 
-void makeLayerJobArr()
-{
-    ifstream fd("./MobileNetSSD.csv");
-    string lay_it_fn = string("MobileNetSSD_partitioned_k") + std::to_string(ACCL_MAX_KRNLS) + string("_d") + std::to_string(ACCL_MAX_DEPTH_SIMD) + string(".csv"); 
-    FILE* fd0 = fopen(lay_it_fn.c_str(), "w");
-    fprintf(fd0, "Name,Type,input channels,input dimensions,output channels,output dimensions,Kernel dimensions,Padding,Stride,group,activation,PoolingType\n");
-    fclose(fd0);
- 
-    // ifstream fd("./rfcn_resnet50.csv");
-    // string lay_it_fn = string("rfcn_resnet50_partitioned_k") + std::to_string(ACCL_MAX_KRNLS) + string("_d") + std::to_string(ACCL_MAX_DEPTH_SIMD) + string(".csv"); 
-    // FILE* fd0 = fopen(lay_it_fn.c_str(), "w");
-    // fprintf(fd0, "Name,Type,input channels,input dimensions,output channels,output dimensions,Kernel dimensions,Padding,Stride,group,activation,PoolingType\n");
-    // fclose(fd0);
- 
-    // ifstream fd("./SSD.csv");
-    // string lay_it_fn = string("SSD_partitioned_k") + std::to_string(ACCL_MAX_KRNLS) + string("_d") + std::to_string(ACCL_MAX_DEPTH_SIMD) + string(".csv"); 
-    // FILE* fd0 = fopen(lay_it_fn.c_str(), "w");
-    // fprintf(fd0, "Name,Type,input channels,input dimensions,output channels,output dimensions,Kernel dimensions,Padding,Stride,group,activation,PoolingType\n");
-    // fclose(fd0);
- 
-    vector<Layer_Job*> layerJobs;
-    string line, tkn_str, tkn_str0, tkn_str1, tkn_str2, tkn_str3;
-    getline(fd, line);
-    int n = 0;
-    
 
-
-    
-    while(getline(fd, line))
-    {
-        stringstream ss(line);
-        vector<string> tokens;
-        bool do_resLayer, do_resLayer_only;        
-        do_resLayer = false;
-        do_resLayer_only = false;
-        while(getline(ss, tkn_str, ','))
-        {
-            tokens.push_back(tkn_str);
-        }
-        string lyType;
-        if(tokens[1] == "convolution")
-        {
-            lyType = "convolution";
-        }
-        else if(tokens[1] == "shortcut")
-        {
-            lyType = "shortcut";
-            do_resLayer = true;
-            do_resLayer_only = true;
-        }
-        else 
-        {
-            continue;    
-        }
-        stringstream ss0(tokens[3]);
-        getline(ss0, tkn_str0, 'x');
-        int inDim = stoi(tkn_str0);
-        int resDim = inDim;
-        stringstream ss1(tokens[6]);
-        getline(ss1, tkn_str1, 'x');     
-        int krnlDim = (tkn_str1 != "-") ? stoi(tkn_str1) : 0;
-        int krnl1x1Dim, krnl3x3Dim;
-        bool krnl_1x1_layer, do_kernels1x1;
-        if(krnlDim == 1)
-        {
-            krnl1x1Dim = 1;
-            krnl3x3Dim = -1;
-            krnl_1x1_layer = true;
-            do_kernels1x1 = true;
-        }
-        else if(krnlDim == 3)
-        {
-            krnl1x1Dim = -1;
-            krnl3x3Dim = 3;
-            krnl_1x1_layer = false;  
-            do_kernels1x1 = false;
-        }
-        stringstream ss2(tokens[5]);
-        getline(ss2, tkn_str2, 'x');       
-        int outDim = stoi(tkn_str2);
-        int group = (tokens[9] != "-") ? stoi(tokens[9]) : 0;
-        int stride = (tokens[8] != "-") ? stoi(tokens[8]) : 0;
-        int padding = (tokens[7] != "-") ? stoi(tokens[7]) : 0;
-        
-        
-        espresso::activation_t act = espresso::NONE;
-        // Get current position
-        int len = fd.tellg();
-        getline(fd, line);
-        // Return to position before "Read line".
-        fd.seekg(len ,std::ios_base::beg);
-        stringstream ss3(line);
-        vector<string> tokens0;
-        while(getline(ss3, tkn_str3, ','))
-        {
-            tokens0.push_back(tkn_str3);
-        }
-        if(tokens0.size() == 0) continue;
-        if(tokens0[1] == "relu")
-        {
-            act = espresso::RELU;
-        }     
-
-        
-        // layerJobs.push_back(new Layer_Job(
-        //     tokens[0],
-        //     lyType,
-        //     group,
-        //     stoi(tokens[2]),
-        //     inDim,
-        //     inDim,
-        //     NULL,
-        //     stoi(tokens[4]),
-        //     stoi(tokens[2]),
-        //     krnl3x3Dim,
-        //     krnl3x3Dim,
-        //     NULL,
-        //     stoi(tokens[4]),
-        //     outDim,
-        //     outDim,
-        //     outDim,
-        //     resDim,
-        //     resDim,
-        //     NULL,
-        //     stoi(tokens[4]),
-        //     stoi(tokens[2]),
-        //     NULL,
-        //     NULL,
-        //     NULL,
-        //     stride,
-        //     false,
-        //     padding,
-        //     do_resLayer,
-        //     do_resLayer_only,
-        //     act,
-        //     act,
-        //     do_kernels1x1,
-        //     NULL,
-        //     krnl_1x1_layer,
-        //     false,
-        //     false,
-        //     false,
-        //     false            
-        // ));
-        // layerJobs[n]->createLayerIters();
-        // string mode = "a";
-        // layerJobs[n]->writeLayIt(lay_it_fn, "a");
-        n++;
-    }
-    
-
-
-    // uint32_t _K_3_S   = K_3_S; 
-    // uint32_t _K_1_S   = K_1_S;
-    // uint32_t _MX_3X3_S = MX_3X3_S;
-    // uint32_t _MX_1X1_S = MX_1X1_S;
-    // uint32_t _MAX_QUAD_PER_AWP = MAX_QUAD_PER_AWP;
-    // 
-    // K_3_S = 1; 
-    // K_1_S = 1;
-    // MX_3X3_S = 1;
-    // MX_1X1_S = 1;
-    // MAX_QUAD_PER_AWP = 8;  
-    // 
-    // uint32_t i = 0;
-    // vector<vector<double>> QUAD_TIME_arr;
-    // vector<vector<double>> FAS_TIME_arr;
-    // vector<double> elapsed_time_arr;
-
-    // while(i < 16)
-    // {        
-    //     for(int j = 0; j < layerJobs.size(); j++)
-    //     {
-    //         QUAD_TIME_arr.resize(layerJobs[j]->m_lay_it_arr.size());
-    //         FAS_TIME_arr.resize(layerJobs[j]->m_lay_it_arr.size());
-    //         double maxTime;
-    //         double totalTime = 0;
-    //         for(int a = 0; a < layerJobs[j]->m_lay_it_arr.size(); a++)
-    //         {
-    //             QUAD_TIME_arr[a].resize(layerJobs[j]->m_lay_it_arr[a].size());
-    //             FAS_TIME_arr[a].resize(layerJobs[j]->m_lay_it_arr[a].size());
-    //             for(int b = 0; b < layerJobs[j]->m_lay_it_arr[a].size(); b++)
-    //             {
-    //                 layerJobs[j]->calcAccelPerfAnalyStats(layerJobs[j]->m_lay_it_arr[a][b], QUAD_TIME_arr[a][b], FAS_TIME_arr[a][b]);       
-    //                 maxTime = max(QUAD_TIME_arr[a][b], FAS_TIME_arr[a][b]);
-    //                 totalTime += maxTime;
-    //             }
-    //         }
-    //         elapsed_time_arr.push_back(totalTime);
-    //     }
-    //     
-    //     ofstream fd;
-    //     string WSpath = string(getenv("WORKSPACE_PATH"));
-    //     string fname = WSpath + "/espressoTester/build/debug/accelPerfAnalyStats_MobileNetSSD.csv";
-    //     fd.open(fname.c_str());
-    //     // fd << ",calc_QUAD_TIME,sim_QUAD_time,calc_FAS_TIME,sim_FAS_TIME" << endl;
-    //     fd << "IDX,NAME,TYPE,QUAD_TIME,FAS_TIME" << endl;
-    //     double totalTime;
-    //     for(int j = 0; j < layerJobs.size(); j++)
-    //     {
-    //         if(layerJobs[j]->m_layerType != "CONVOLUTION" && layerJobs[j]->m_layerType != "RESIDUAL")
-    //         {
-    //             continue;
-    //         }
-    //         fd <<  j << "," << layerJobs[j]->m_layerName << "," << layerJobs[j]->m_layerType << ",";
-    //         if(layerJobs[j]->m_layerType == "CONVOLUTION" && layerJobs[j]->m_num3x3Kernels > 0) 
-    //         {
-    //             totalTime += elapsed_time_arr[j];
-    //         }
-    //         else if(layerJobs[j]->m_layerType == "CONVOLUTION" && layerJobs[j]->m_krnl_1x1_layer && layerJobs[j]->m_stride == 1)
-    //         {                
-    //             totalTime += elapsed_time_arr[j];
-    //         }
-    //         else if(layerJobs[j]->m_layerType == "RESIDUAL")
-    //         {
-    //             totalTime += elapsed_time_arr[j];            
-    //         } 
-    //     }
-    //     fd << endl;
-    //     fd << "Total Time:, "   << totalTime          << endl;
-    //     fd << "K_3_S:, "        << K_3_S              << endl; 
-    //     fd << "K_1_S:, "        << K_1_S              << endl; 
-    //     fd << "MX_3X3_S:, "     << MX_3X3_S           << endl;
-    //     fd << "MX_1X1_S:, "     << MX_1X1_S           << endl;
-    //     fd << "NUM_QUADS:, "    << MAX_QUAD_PER_AWP   << endl;
-    //     fd << "FPS:, "          << 1.0 / (totalTime * pow(CLK_PRD_NS, -9.0)) << endl;
-    //     fd << "DSPs:, "         << NUM_DSPS_PER_QUAD * K_3_S + NUM_DSPS_PER_FAS * K_1_S << " / 9024" << endl;
-    //     fd << "BRAMs:, "        << NUM_BRAMS_PER_QUAD << " / 340" << endl;
-    //     fd.close();
-    //     
-    //     _K_3_S              = nextPow2(++_K_3_S);
-    //     _K_1_S              = nextPow2(++_K_1_S);
-    //     _MX_3X3_S           = nextPow2(++_MX_3X3_S);
-    //     _MX_1X1_S           = nextPow2(++_MX_1X1_S);
-    //     _MAX_QUAD_PER_AWP   = nextPow2(++_MAX_QUAD_PER_AWP);
-    //     
-    //     K_3_S = min(16, (int)_K_3_S);
-    //     K_1_S = min(16, (int)_K_1_S);
-    //     MX_3X3_S = min(4, (int)_MX_3X3_S);
-    //     MX_1X1_S = min(4, (int)_MX_1X1_S);
-    //     MAX_QUAD_PER_AWP = min(32, (int)_MAX_QUAD_PER_AWP);
-    //     i++;
-    //     break;
-    // }
-
-    exit(0);
-}
-
-
-#include <iostream>
-#include <sstream>
 int main(int argc, char **argv)
 {
     string WSpath = string(getenv("WORKSPACE_PATH"));
@@ -875,50 +625,43 @@ int main(int argc, char **argv)
         // exit(1);
     }
 #endif
-
-    QUAD_MAX_KERNELS = 128;
-    MAX_QUAD_PER_AWP = 16;
-    
-    
-    // // YOLOv3
-    // netName = "YOLOv3";
-    // espresso::precision_t precision = espresso::FLOAT;
-    // espresso::backend_t backend = espresso::FPGA_BACKEND;
-    // network* yolo_net = NULL;
-    // string yolov3_cfg_FN = WSpath + "/darknet/cfg/yolov3.cfg";
-    // string yolov3_whts_FN = WSpath + "/darknet/cfg/yolov3.weights";
-    // string yolov3_mrgd_fm_FN = WSpath + "/darknet/cfg/yolov3_merged_fmt.txt";
-    // vector<espresso::layerInfo_obj*> networkLayerInfoArr = darknetDataTransform(
-    //     &yolo_net,
-    //     (char*)yolov3_cfg_FN.c_str(),
-    //     (char*)yolov3_whts_FN.c_str(),
-    //     backend,
-    //     precision,
-    //     espresso::YOLO_DEF_FXPT_LEN,
-    //     espresso::YOLO_DEF_NUM_FRAC_BITS
-    // );
-    // vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
-    // // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
-    // networkLayerInfoArr[1]->first = true;
-    // networkLayerInfoArr[106]->last = true;
-    // espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
-    // string imgFN = WSpath + "/darknet/data/dog.jpg";
-    // image im = load_image_color((char*)imgFN.c_str(), 0, 0);
-    // image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
-    // cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
-    // // net.cfgFPGALayers(mergdFMT);
-    // net.cfgFPGALayers();
-    // net.setHardware(m_sysc_fpga_hndl);
-    // // string imgOut_FN = "predictions";
-    // // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
-    // // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
-    // // free_image(im);
-    // // free_image(sized);
+    // YOLOv3
+    netName = "YOLOv3";
+    espresso::precision_t precision = espresso::FLOAT;
+    espresso::backend_t backend = espresso::FPGA_BACKEND;
+    network* yolo_net = NULL;
+    string yolov3_cfg_FN = WSpath + "/darknet/cfg/yolov3.cfg";
+    string yolov3_whts_FN = WSpath + "/darknet/cfg/yolov3.weights";
+    string yolov3_mrgd_fm_FN = WSpath + "/darknet/cfg/yolov3_merged_fmt.txt";
+    vector<espresso::layerInfo_obj*> networkLayerInfoArr = darknetDataTransform(
+        &yolo_net,
+        (char*)yolov3_cfg_FN.c_str(),
+        (char*)yolov3_whts_FN.c_str(),
+        backend,
+        precision,
+        espresso::YOLO_DEF_FXPT_LEN,
+        espresso::YOLO_DEF_NUM_FRAC_BITS
+    );
+    vector<int> outputLayers = getYOLOOutputLayers(networkLayerInfoArr);
+    // vector<layerPrec_t> layerPrecArr = profileYOLOWeights(networkLayerInfoArr);
+    networkLayerInfoArr[1]->first = true;
+    networkLayerInfoArr[106]->last = true;
+    espresso::CNN_Network net(netName, networkLayerInfoArr, outputLayers);
+    string imgFN = WSpath + "/darknet/data/dog.jpg";
+    image im = load_image_color((char*)imgFN.c_str(), 0, 0);
+    image sized = letterbox_image(im, networkLayerInfoArr[0]->numInputRows, networkLayerInfoArr[0]->numInputCols);
+    cfgInputLayer(sized, &net, networkLayerInfoArr[0], espresso::FLOAT);
+    // net.cfgFPGALayers(mergdFMT);
+    net.cfgFPGALayers();
+    net.setHardware(m_sysc_fpga_hndl);
+    // string imgOut_FN = "predictions";
+    // string cocoNames_FN = WSpath + "/darknet/data/coco.names";
+    // post_yolo(&net, yolo_net, (char*)cocoNames_FN.c_str(), sized, (char*)imgOut_FN.c_str());
+    // free_image(im);
+    // free_image(sized);
 
     
-    makeLayerJobArr();
-
-
+ 
     // MobileNetSSD
     // cout << "FIXME - " << __FILE__ << ":" << __LINE__ << endl;
     // cout << "\t some caffe layers are wont be properly connected" << endl;
