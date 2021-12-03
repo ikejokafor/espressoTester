@@ -625,6 +625,9 @@ int main(int argc, char **argv)
         // exit(1);
     }
 #endif
+    MAX_QUAD_PER_AWP = 32;
+    QUAD_MAX_KERNELS = 256;
+
     // YOLOv3
     netName = "YOLOv3";
     espresso::precision_t precision = espresso::FLOAT;
@@ -855,7 +858,7 @@ int main(int argc, char **argv)
     //     //     i++;
     //     //     break;
     //     // }
-    //     net.writeLayIt();
+    //        net.writeLayIt();
     //     // net.Forward();
     // }
 
